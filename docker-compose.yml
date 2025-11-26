@@ -1,0 +1,61 @@
+services:
+  app:
+    build:
+      context: .
+    container_name: constancias-app
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - constancias-net
+    depends_on:
+      - db
+
+  web:
+    image: nginx:1.27
+    container_name: constancias-web
+    restart: unless-stopped
+    ports:
+      - "8180:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - constancias-net
+    depends_on:
+      - app
+
+  redis:
+    image: redis:7-alpine
+    container_name: constancias-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    networks:
+      - constancias-net
+
+  db:
+    image: mysql:8.0
+    container_name: constancias-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: constancias
+      MYSQL_USER: constancias
+      MYSQL_PASSWORD: constancias
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - constancias-net
+
+volumes:
+  db_data:
+
+networks:
+  constancias-net:
+    driver: bridge
+
