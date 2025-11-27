@@ -207,7 +207,25 @@
                                 class="file-input file-input-bordered file-input-xs w-full text-[10px]"
                                 accept="image/*" @change="refreshPreview()" />
                             @if($documentConfiguration->background_image)
-                                <div class="mt-1 text-[9px] opacity-60 italic">Imagen actual cargada.</div>
+                                @php
+                                    $bgUrl = '';
+                                    if (Str::startsWith($documentConfiguration->background_image, ['http://', 'https://'])) {
+                                        $bgUrl = $documentConfiguration->background_image;
+                                    } else {
+                                        $bgUrl = route('document-configurations.background-image', $documentConfiguration);
+                                    }
+                                @endphp
+                                <div class="mt-2 flex items-center gap-3 p-2 border border-base-300 rounded-lg bg-base-50">
+                                    <div class="h-12 w-12 shrink-0 overflow-hidden rounded border border-base-200 bg-base-200">
+                                        <img src="{{ $bgUrl }}" alt="Fondo" class="h-full w-full object-cover">
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-[10px] font-semibold truncate" title="{{ basename($documentConfiguration->background_image) }}">
+                                            {{ basename($documentConfiguration->background_image) }}
+                                        </div>
+                                        <div class="text-[9px] opacity-60">Imagen actual</div>
+                                    </div>
+                                </div>
                             @endif
                         </div>
                         <div class="grid grid-cols-2 gap-2">
@@ -409,6 +427,21 @@
             </div>
         </div>
 
+        <!-- Toast Container -->
+        <div class="toast toast-end toast-bottom z-50">
+            <template x-for="notification in notifications" :key="notification.id">
+                <div class="alert shadow-lg text-xs py-2 px-3 min-h-0" 
+                    :class="{
+                        'alert-info': notification.type === 'info',
+                        'alert-success': notification.type === 'success',
+                        'alert-error': notification.type === 'error',
+                        'alert-warning': notification.type === 'warning'
+                    }">
+                    <span x-text="notification.message"></span>
+                </div>
+            </template>
+        </div>
+
         <script>
             function editor(previewUrl) {
                 return {
@@ -419,15 +452,28 @@
                     previewUrl: previewUrl,
                     newVarKey: '',
 
+                    notifications: [],
+
                     init() {
                         this.refreshPreview();
                     },
 
+                    showNotification(message, type = 'info') {
+                        const id = Date.now();
+                        this.notifications.push({ id, message, type });
+                        setTimeout(() => {
+                            this.notifications = this.notifications.filter(n => n.id !== id);
+                        }, 3000);
+                    },
+
                     addVariable() {
                         if (this.newVarKey && !this.sampleData.hasOwnProperty(this.newVarKey)) {
-                            this.$set(this.sampleData, this.newVarKey, 'Valor de ejemplo');
+                            this.sampleData[this.newVarKey] = 'Valor de ejemplo';
                             this.newVarKey = '';
                             this.refreshPreview();
+                            this.showNotification('Variable agregada correctamente', 'success');
+                        } else if (this.sampleData.hasOwnProperty(this.newVarKey)) {
+                            this.showNotification('La variable "' + this.newVarKey + '" ya existe', 'error');
                         }
                     },
 
@@ -446,11 +492,13 @@
                             fill: false
                         });
                         this.refreshPreview();
+                        this.showNotification('Elemento de texto agregado', 'success');
                     },
 
                     removeElement(index) {
                         this.textElements.splice(index, 1);
                         this.refreshPreview();
+                        this.showNotification('Elemento eliminado', 'info');
                     },
 
                     async refreshPreview() {
@@ -480,9 +528,11 @@
                                 this.$refs.previewFrame.src = url;
                             } else {
                                 console.error('Preview failed');
+                                this.showNotification('Error al generar la vista previa', 'error');
                             }
                         } catch (error) {
                             console.error('Error fetching preview:', error);
+                            this.showNotification('Error de conexión', 'error');
                         } finally {
                             this.loading = false;
                         }
@@ -490,6 +540,8 @@
                 }
             }
         </script>
+        
+
         <style>
             .no-scrollbar::-webkit-scrollbar {
                 display: none;
