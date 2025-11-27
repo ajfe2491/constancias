@@ -107,10 +107,11 @@ class DocumentConfigurationController extends Controller
         }
 
         // Asegurar que los campos booleanos se procesen correctamente
-        $data['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : false;
-        $data['show_qr'] = $request->has('show_qr') ? $request->boolean('show_qr') : false;
-        $data['folio_year_prefix'] = $request->has('folio_year_prefix') ? $request->boolean('folio_year_prefix') : false;
-        $data['enable_live_preview'] = $request->has('enable_live_preview') ? true : false;
+        // Para checkboxes estándar, la presencia del campo indica "true".
+        $data['is_active'] = $request->has('is_active');
+        $data['show_qr'] = $request->has('show_qr');
+        $data['folio_year_prefix'] = $request->has('folio_year_prefix');
+        $data['enable_live_preview'] = $request->has('enable_live_preview');
 
         $documentConfiguration->update($data);
 
