@@ -123,6 +123,11 @@ class DocumentConfiguration extends Model
                 // Convertir saltos de línea
                 $text = str_replace(['\\n', '\\r'], ["\n", "\r"], $text);
 
+                // Aplicar mayúsculas si está configurado
+                if (!empty($element['uppercase'])) {
+                    $text = mb_strtoupper($text, 'UTF-8');
+                }
+
                 // Configurar fuente
                 $fontFamily = $element['font_family'] ?? $this->default_font_family ?? 'Arial';
                 $fontStyle = $element['font_style'] ?? $this->default_font_style ?? '';
@@ -131,12 +136,30 @@ class DocumentConfiguration extends Model
                 $pdf->SetFont($fontFamily, $fontStyle, $fontSize);
 
                 // Colores
-                $textColor = $this->hexToRgb($element['text_color'] ?? $this->default_text_color ?? '#000000');
+                $textColorHex = $element['text_color'] ?? $this->default_text_color ?? '#000000';
+                $textColor = $this->hexToRgb($textColorHex);
                 $pdf->SetTextColor($textColor['r'], $textColor['g'], $textColor['b']);
 
-                if (!empty($element['fill_color'])) {
-                    $fillColor = $this->hexToRgb($element['fill_color']);
+                $fillColorHex = $element['fill_color'] ?? null;
+                if (!empty($fillColorHex)) {
+                    $fillColor = $this->hexToRgb($fillColorHex);
                     $pdf->SetFillColor($fillColor['r'], $fillColor['g'], $fillColor['b']);
+                }
+
+                // Auto Width Logic
+                if (isset($element['auto_width_percent']) && floatval($element['auto_width_percent']) > 0) {
+                    $widthPercent = floatval($element['auto_width_percent']);
+                    if ($widthPercent > 100)
+                        $widthPercent = 100;
+
+                    $pageWidth = $pdf->GetPageWidth();
+                    $textBoxWidth = round($pageWidth * ($widthPercent / 100), 2);
+                    $sideMargin = round(($pageWidth - $textBoxWidth) / 2, 2);
+
+                    $element['width'] = $textBoxWidth;
+                    $element['x'] = $sideMargin;
+                    $element['alignment'] = 'C';
+                    $element['multicell'] = true;
                 }
 
                 $x = $element['x'] ?? 10;
@@ -149,10 +172,17 @@ class DocumentConfiguration extends Model
 
                 $pdf->SetXY($x, $y);
 
-                if ($multicell) {
-                    $pdf->MultiCell($w, $h, iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $text), 0, $align, $fill);
+                // Verificar si el texto contiene marcadores de formato (*, %, &)
+                $hasFormatMarkers = (strpos($text, '*') !== false || strpos($text, '%') !== false || strpos($text, '&') !== false);
+
+                if ($hasFormatMarkers) {
+                    $this->drawFormattedText($pdf, $text, $element, $fontFamily, $fontSize, $textColorHex, $fillColorHex, $fill, $multicell);
                 } else {
-                    $pdf->Cell($w, $h, iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $text), 0, 0, $align, $fill);
+                    if ($multicell) {
+                        $pdf->MultiCell($w, $h, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text), 0, $align, $fill);
+                    } else {
+                        $pdf->Cell($w, $h, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text), 0, 0, $align, $fill);
+                    }
                 }
             }
         }
@@ -202,5 +232,448 @@ class DocumentConfiguration extends Model
             $b = hexdec(substr($hex, 4, 2));
         }
         return ['r' => $r, 'g' => $g, 'b' => $b];
+    }
+
+    /**
+     * Dibujar texto con formato mixto (negrita, cursiva, mayúsculas)
+     * Marcadores: *texto* = negrita, %texto% = cursiva, &texto& = mayúsculas
+     */
+    private function drawFormattedText($pdf, $text, $element, $baseFontFamily, $baseFontSize, $textColor, $fillColor, $fill, $useMultiCell = false)
+    {
+        // Parsear el texto y dividirlo en segmentos con formato
+        $segments = $this->parseFormattedText($text);
+
+        // Guardar posición inicial
+        $startX = $pdf->GetX();
+        $startY = $pdf->GetY();
+        $currentX = $startX;
+        $currentY = $startY;
+
+        // Aplicar color de texto base
+        if ($textColor && strlen($textColor) >= 7) {
+            $r = hexdec(substr($textColor, 1, 2));
+            $g = hexdec(substr($textColor, 3, 2));
+            $b = hexdec(substr($textColor, 5, 2));
+            $pdf->SetTextColor($r, $g, $b);
+        } else {
+            $pdf->SetTextColor(0, 0, 0);
+        }
+
+        // Aplicar color de relleno si es necesario
+        if ($fill && $fillColor && strlen($fillColor) >= 7) {
+            $r = hexdec(substr($fillColor, 1, 2));
+            $g = hexdec(substr($fillColor, 3, 2));
+            $b = hexdec(substr($fillColor, 5, 2));
+            $pdf->SetFillColor($r, $g, $b);
+        } else {
+            $pdf->SetFillColor(255, 255, 255);
+        }
+
+        if ($useMultiCell) {
+            // Modo MultiCell: dividir en líneas respetando el ancho y manteniendo formato
+            $lines = $this->wrapFormattedText($pdf, $segments, $element['width'], $baseFontFamily, $baseFontSize);
+
+            $alignment = isset($element['alignment']) ? $element['alignment'] : 'L';
+
+            // Altura de línea configurada o calculada
+            $defaultLineHeight = ($element['height'] ?? 0) > 0 ? $element['height'] : 0;
+            $fontBasedHeight = round($baseFontSize * 0.45, 2); // aproximación en mm (12pt ≈ 5.4mm)
+            if ($defaultLineHeight <= 0 || $defaultLineHeight < $fontBasedHeight) {
+                $defaultLineHeight = $fontBasedHeight;
+            }
+            if ($defaultLineHeight <= 0) {
+                $defaultLineHeight = max(5, round($baseFontSize * 0.45, 2));
+            }
+
+            if (isset($element['line_height']) && $element['line_height'] > 0) {
+                $lineHeight = max($element['line_height'], $defaultLineHeight);
+            } else {
+                $lineHeight = $defaultLineHeight;
+            }
+
+            // Altura máxima disponible por caja (0 = sin límite)
+            $boxHeightLimit = isset($element['max_height']) ? $element['max_height'] : 0;
+            if ($boxHeightLimit > 0 && $boxHeightLimit < $lineHeight) {
+                $boxHeightLimit = $lineHeight;
+            }
+
+            // Espaciado entre cajas adicionales
+            $boxSpacing = isset($element['box_spacing']) ? $element['box_spacing'] : ($lineHeight * 0.25);
+
+            $totalLines = count($lines);
+            $maxLinesPerBox = $totalLines;
+            if ($boxHeightLimit > 0) {
+                $maxLinesPerBox = max(1, (int) floor($boxHeightLimit / $lineHeight));
+            }
+
+            $lineGroups = [];
+            if ($maxLinesPerBox >= $totalLines) {
+                $lineGroups[] = $lines;
+            } else {
+                for ($i = 0; $i < $totalLines; $i += $maxLinesPerBox) {
+                    $lineGroups[] = array_slice($lines, $i, $maxLinesPerBox);
+                }
+            }
+
+            $currentY = $startY;
+
+            foreach ($lineGroups as $groupIndex => $groupLines) {
+                if ($groupIndex > 0) {
+                    $currentY += $boxSpacing;
+                }
+
+                foreach ($groupLines as $lineIndex => $line) {
+                    $lineSegments = $line['segments'];
+                    $lineWidth = $line['width'];
+
+                    // Calcular posición X según alineación
+                    if ($alignment === 'C') {
+                        $currentX = $startX + ($element['width'] - $lineWidth) / 2;
+                    } elseif ($alignment === 'R') {
+                        $currentX = $startX + $element['width'] - $lineWidth;
+                    } else {
+                        $currentX = $startX;
+                    }
+
+                    $lineY = $currentY + ($lineIndex * $lineHeight);
+                    $pdf->SetXY($currentX, $lineY);
+
+                    foreach ($lineSegments as $segment) {
+                        $fontStyle = $segment['style'];
+                        $segmentText = $segment['text'];
+
+                        if (function_exists('iconv')) {
+                            $segmentText = iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $segmentText);
+                        } else {
+                            $segmentText = utf8_decode($segmentText);
+                        }
+
+                        $pdf->SetFont($baseFontFamily, $fontStyle, $baseFontSize);
+
+                        $segmentWidth = $pdf->GetStringWidth($segmentText);
+
+                        $currentPdfY = $pdf->GetY();
+                        if (abs($currentPdfY - $lineY) > 0.01) {
+                            $pdf->SetY($lineY);
+                        }
+
+                        $pdf->Cell($segmentWidth, $lineHeight, $segmentText, 0, 0, 'L', $fill);
+
+                        $currentX += $segmentWidth;
+                        $pdf->SetXY($currentX, $lineY);
+                    }
+                }
+
+                $currentY += count($groupLines) * $lineHeight;
+            }
+
+            $pdf->SetXY($startX, $currentY);
+        } else {
+            // Modo Cell: una sola línea
+            // Calcular ancho total del texto para alineación
+            $totalWidth = 0;
+            foreach ($segments as $segment) {
+                $fontStyle = $segment['style'];
+                $segmentText = $segment['text'];
+
+                // Convertir a windows-1252
+                if (function_exists('iconv')) {
+                    $segmentText = iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $segmentText);
+                } else {
+                    $segmentText = utf8_decode($segmentText);
+                }
+
+                $pdf->SetFont($baseFontFamily, $fontStyle, $baseFontSize);
+                $totalWidth += $pdf->GetStringWidth($segmentText);
+            }
+
+            // Ajustar posición inicial según alineación
+            $alignment = isset($element['alignment']) ? $element['alignment'] : 'L';
+            if ($alignment === 'C') {
+                $currentX = $startX + ($element['width'] - $totalWidth) / 2;
+            } elseif ($alignment === 'R') {
+                $currentX = $startX + $element['width'] - $totalWidth;
+            } else {
+                $currentX = $startX;
+            }
+
+            // Dibujar cada segmento
+            foreach ($segments as $segment) {
+                $fontStyle = $segment['style'];
+                $segmentText = $segment['text'];
+
+                // Convertir a windows-1252
+                if (function_exists('iconv')) {
+                    $segmentText = iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $segmentText);
+                } else {
+                    $segmentText = utf8_decode($segmentText);
+                }
+
+                // Establecer fuente y estilo
+                $pdf->SetFont($baseFontFamily, $fontStyle, $baseFontSize);
+
+                // Calcular ancho del segmento
+                $segmentWidth = $pdf->GetStringWidth($segmentText);
+
+                // Dibujar el segmento
+                $pdf->SetXY($currentX, $currentY);
+                $pdf->Cell($segmentWidth, $element['height'], $segmentText, 0, 0, 'L', $fill);
+
+                // Avanzar posición X
+                $currentX += $segmentWidth;
+            }
+
+            // Mover a la siguiente línea después de todo el texto
+            $pdf->SetXY($startX, $currentY + $element['height']);
+        }
+    }
+
+    /**
+     * Dividir texto formateado en líneas respetando el ancho máximo
+     */
+    private function wrapFormattedText($pdf, $segments, $maxWidth, $baseFontFamily, $baseFontSize)
+    {
+        $lines = [];
+        $currentLine = [];
+        $currentLineWidth = 0;
+
+        foreach ($segments as $segment) {
+            $fontStyle = $segment['style'];
+            $segmentText = $segment['text'];
+
+            // Manejar saltos de línea explícitos
+            if (strpos($segmentText, "\n") !== false) {
+                $parts = explode("\n", $segmentText);
+                foreach ($parts as $index => $part) {
+                    if ($index > 0) {
+                        // Guardar línea actual y empezar nueva
+                        if (!empty($currentLine)) {
+                            $lines[] = [
+                                'segments' => $currentLine,
+                                'width' => $currentLineWidth
+                            ];
+                        }
+                        $currentLine = [];
+                        $currentLineWidth = 0;
+                    }
+
+                    if (!empty($part)) {
+                        // Procesar la parte del texto
+                        $this->addTextToLine($pdf, $part, $fontStyle, $maxWidth, $baseFontFamily, $baseFontSize, $currentLine, $currentLineWidth, $lines);
+                    }
+                }
+            } else {
+                // Procesar segmento sin saltos de línea
+                $this->addTextToLine($pdf, $segmentText, $fontStyle, $maxWidth, $baseFontFamily, $baseFontSize, $currentLine, $currentLineWidth, $lines);
+            }
+        }
+
+        // Agregar la última línea si no está vacía
+        if (!empty($currentLine)) {
+            $lines[] = [
+                'segments' => $currentLine,
+                'width' => $currentLineWidth
+            ];
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Agregar texto a la línea actual, dividiendo en palabras si es necesario
+     */
+    private function addTextToLine($pdf, $text, $fontStyle, $maxWidth, $baseFontFamily, $baseFontSize, &$currentLine, &$currentLineWidth, &$lines)
+    {
+        // Convertir a windows-1252 para cálculos
+        if (function_exists('iconv')) {
+            $textConverted = iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $text);
+        } else {
+            $textConverted = utf8_decode($text);
+        }
+
+        $pdf->SetFont($baseFontFamily, $fontStyle, $baseFontSize);
+
+        // Dividir el texto en palabras (incluyendo espacios)
+        $words = preg_split('/(\s+)/u', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+        foreach ($words as $word) {
+            if (empty($word)) {
+                continue;
+            }
+
+            // Convertir palabra para cálculos
+            if (function_exists('iconv')) {
+                $wordConverted = iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $word);
+            } else {
+                $wordConverted = utf8_decode($word);
+            }
+
+            $wordWidth = $pdf->GetStringWidth($wordConverted);
+
+            // Si la palabra sola es más ancha que el máximo, hay que cortarla (caso extremo)
+            if ($wordWidth > $maxWidth && !empty(trim($word))) {
+                // Palabra muy larga, cortarla carácter por carácter
+                $chars = preg_split('//u', $word, -1, PREG_SPLIT_NO_EMPTY);
+                foreach ($chars as $char) {
+                    if (function_exists('iconv')) {
+                        $charConverted = iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $char);
+                    } else {
+                        $charConverted = utf8_decode($char);
+                    }
+                    $charWidth = $pdf->GetStringWidth($charConverted);
+
+                    if ($currentLineWidth + $charWidth <= $maxWidth || empty($currentLine)) {
+                        $currentLine[] = [
+                            'text' => $char,
+                            'style' => $fontStyle
+                        ];
+                        $currentLineWidth += $charWidth;
+                    } else {
+                        // Nueva línea
+                        if (!empty($currentLine)) {
+                            $lines[] = [
+                                'segments' => $currentLine,
+                                'width' => $currentLineWidth
+                            ];
+                        }
+                        $currentLine = [
+                            [
+                                'text' => $char,
+                                'style' => $fontStyle
+                            ]
+                        ];
+                        $currentLineWidth = $charWidth;
+                    }
+                }
+            } else {
+                // Palabra normal
+                if ($currentLineWidth + $wordWidth <= $maxWidth || empty($currentLine)) {
+                    // Cabe en la línea actual
+                    $currentLine[] = [
+                        'text' => $word,
+                        'style' => $fontStyle
+                    ];
+                    $currentLineWidth += $wordWidth;
+                } else {
+                    // No cabe, empezar nueva línea
+                    if (!empty($currentLine)) {
+                        $lines[] = [
+                            'segments' => $currentLine,
+                            'width' => $currentLineWidth
+                        ];
+                    }
+                    $currentLine = [
+                        [
+                            'text' => $word,
+                            'style' => $fontStyle
+                        ]
+                    ];
+                    $currentLineWidth = $wordWidth;
+                }
+            }
+        }
+    }
+
+    /**
+     * Parsear texto con marcadores de formato y dividirlo en segmentos (Recursivo)
+     * Marcadores: *texto* = negrita, %texto% = cursiva, &texto& = mayúsculas
+     */
+    private function parseFormattedText($text, $inheritedStyle = '')
+    {
+        $segments = [];
+        $currentPos = 0;
+        $textLength = mb_strlen($text, 'UTF-8');
+
+        while ($currentPos < $textLength) {
+            // Buscar el siguiente marcador usando funciones multibyte
+            $nextAsterisk = mb_strpos($text, '*', $currentPos, 'UTF-8');
+            $nextPercent = mb_strpos($text, '%', $currentPos, 'UTF-8');
+            $nextAmpersand = mb_strpos($text, '&', $currentPos, 'UTF-8');
+
+            // Encontrar el marcador más cercano
+            $markers = [];
+            if ($nextAsterisk !== false)
+                $markers['*'] = $nextAsterisk;
+            if ($nextPercent !== false)
+                $markers['%'] = $nextPercent;
+            if ($nextAmpersand !== false)
+                $markers['&'] = $nextAmpersand;
+
+            if (empty($markers)) {
+                // No hay más marcadores, agregar el resto del texto
+                $remainingText = mb_substr($text, $currentPos, null, 'UTF-8');
+                if (!empty($remainingText)) {
+                    $segments[] = [
+                        'text' => $remainingText,
+                        'style' => $inheritedStyle
+                    ];
+                }
+                break;
+            }
+
+            $nextMarkerPos = min($markers);
+            $markerChar = array_search($nextMarkerPos, $markers);
+
+            // Agregar texto antes del marcador si existe
+            if ($nextMarkerPos > $currentPos) {
+                $beforeText = mb_substr($text, $currentPos, $nextMarkerPos - $currentPos, 'UTF-8');
+                if (!empty($beforeText)) {
+                    $segments[] = [
+                        'text' => $beforeText,
+                        'style' => $inheritedStyle
+                    ];
+                }
+            }
+
+            // Buscar el marcador de cierre
+            $closeMarkerPos = mb_strpos($text, $markerChar, $nextMarkerPos + 1, 'UTF-8');
+
+            if ($closeMarkerPos === false) {
+                // No hay marcador de cierre, agregar el resto como texto normal
+                $remainingText = mb_substr($text, $nextMarkerPos, null, 'UTF-8');
+                if (!empty($remainingText)) {
+                    $segments[] = [
+                        'text' => $remainingText,
+                        'style' => $inheritedStyle
+                    ];
+                }
+                break;
+            }
+
+            // Extraer el texto entre marcadores
+            $innerContent = mb_substr($text, $nextMarkerPos + 1, $closeMarkerPos - $nextMarkerPos - 1, 'UTF-8');
+
+            // Determinar nuevo estilo y transformación
+            $childStyle = $inheritedStyle;
+            $isUppercase = false;
+
+            if ($markerChar === '*') {
+                if (strpos($childStyle, 'B') === false)
+                    $childStyle .= 'B';
+            } elseif ($markerChar === '%') {
+                if (strpos($childStyle, 'I') === false)
+                    $childStyle .= 'I';
+            } elseif ($markerChar === '&') {
+                $isUppercase = true;
+            }
+
+            // Llamada recursiva para procesar contenido anidado
+            $innerSegments = $this->parseFormattedText($innerContent, $childStyle);
+
+            // Aplicar transformación de mayúsculas si es necesario
+            if ($isUppercase) {
+                foreach ($innerSegments as &$seg) {
+                    $seg['text'] = mb_strtoupper($seg['text'], 'UTF-8');
+                }
+            }
+
+            // Fusionar segmentos
+            $segments = array_merge($segments, $innerSegments);
+
+            // Continuar después del marcador de cierre
+            $currentPos = $closeMarkerPos + 1;
+        }
+
+        return $segments;
     }
 }
