@@ -194,6 +194,30 @@ class DocumentConfigurationController extends Controller
     }
 
     /**
+     * Serve the background image.
+     */
+    public function backgroundImage(DocumentConfiguration $documentConfiguration)
+    {
+        if (!$documentConfiguration->background_image) {
+            abort(404);
+        }
+
+        $path = $documentConfiguration->background_image;
+
+        // Handle storage path
+        if (Storage::disk('public')->exists($path)) {
+            return response()->file(Storage::disk('public')->path($path));
+        }
+
+        // Handle absolute path (if any)
+        if (file_exists($path)) {
+            return response()->file($path);
+        }
+
+        abort(404);
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(DocumentConfiguration $documentConfiguration)

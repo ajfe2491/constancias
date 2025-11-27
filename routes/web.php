@@ -18,6 +18,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('document-configurations/{document_configuration}/live-preview', [\App\Http\Controllers\DocumentConfigurationController::class, 'preview'])->name('document-configurations.preview');
     Route::get('document-configurations/{document_configuration}/stream-pdf', [\App\Http\Controllers\DocumentConfigurationController::class, 'streamPdf'])->name('document-configurations.stream-pdf');
+    Route::get('document-configurations/{document_configuration}/background-image', [\App\Http\Controllers\DocumentConfigurationController::class, 'backgroundImage'])->name('document-configurations.background-image');
     Route::resource('document-configurations', \App\Http\Controllers\DocumentConfigurationController::class);
     Route::resource('events', \App\Http\Controllers\EventController::class);
 });
