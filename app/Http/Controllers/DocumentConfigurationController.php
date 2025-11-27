@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DocumentConfiguration;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use chillerlan\QRCode\QRCode;
 
 class DocumentConfigurationController extends Controller
 {
@@ -165,12 +166,44 @@ class DocumentConfigurationController extends Controller
             $sampleData = json_decode($sampleData, true) ?? [];
         }
 
+        // Handle QR Code for preview
+        if ($tempConfig->show_qr) {
+            $qrPath = $this->ensureExampleQr();
+            if ($qrPath) {
+                $sampleData['qr_path'] = $qrPath;
+            }
+        }
+
         $pdf = $tempConfig->generatePDF($sampleData);
 
         return response($pdf->Output('S'), 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="preview.pdf"'
         ]);
+    }
+
+    /**
+     * Ensure an example QR code exists for preview.
+     */
+    private function ensureExampleQr()
+    {
+        $dir = public_path('qrs');
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $filePath = $dir . '/example.png';
+
+        if (!file_exists($filePath)) {
+            try {
+                (new QRCode)->render('https://example.com/verify/12345', $filePath);
+            } catch (\Exception $e) {
+                \Log::error('Failed to generate example QR: ' . $e->getMessage());
+                return null;
+            }
+        }
+
+        return $filePath;
     }
 
     /**
