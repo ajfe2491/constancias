@@ -90,8 +90,6 @@ class DocumentConfigurationController extends Controller
 
         $data = $request->except('background_image', 'text_elements');
 
-        \Illuminate\Support\Facades\Log::info('Update Request Data:', $request->all());
-        \Illuminate\Support\Facades\Log::info('Has show_qr:', ['has' => $request->has('show_qr')]);
 
         if ($request->hasFile('background_image')) {
             if ($documentConfiguration->background_image) {
@@ -116,11 +114,7 @@ class DocumentConfigurationController extends Controller
         $data['folio_year_prefix'] = $request->has('folio_year_prefix');
         $data['enable_live_preview'] = $request->has('enable_live_preview');
 
-        \Illuminate\Support\Facades\Log::info('Data for Update:', $data);
-
         $documentConfiguration->update($data);
-
-        \Illuminate\Support\Facades\Log::info('Model after Update:', $documentConfiguration->fresh()->toArray());
 
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Guardado correctamente']);
@@ -138,8 +132,6 @@ class DocumentConfigurationController extends Controller
         $tempConfig = clone $documentConfiguration;
         $data = $request->all();
 
-        \Illuminate\Support\Facades\Log::info('Preview Request Data:', $data);
-        \Illuminate\Support\Facades\Log::info('Preview Has show_qr:', ['has' => $request->has('show_qr')]);
 
         // Fill temp config with request data
         // Note: fill() only updates attributes present in the array.
