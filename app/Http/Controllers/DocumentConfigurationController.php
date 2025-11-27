@@ -194,9 +194,26 @@ class DocumentConfigurationController extends Controller
 
         $filePath = $dir . '/example.png';
 
+        // Regenerate if file doesn't exist or is not a PNG (simple check by mime type or just force regen if it's the wrong type previously)
+        // For simplicity, let's check if it exists and is valid, otherwise regen.
+        // Actually, since we had a bug, let's force regen if it's an SVG.
+        if (file_exists($filePath)) {
+            $mime = mime_content_type($filePath);
+            if ($mime === 'image/svg+xml') {
+                unlink($filePath);
+            }
+        }
+
         if (!file_exists($filePath)) {
             try {
-                (new QRCode)->render('https://example.com/verify/12345', $filePath);
+                $options = new \chillerlan\QRCode\QROptions([
+                    'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_IMAGE_PNG,
+                    'eccLevel' => \chillerlan\QRCode\QRCode::ECC_L,
+                    'scale' => 5,
+                    'imageBase64' => false,
+                ]);
+
+                (new \chillerlan\QRCode\QRCode($options))->render('https://example.com/verify/12345', $filePath);
             } catch (\Exception $e) {
                 \Log::error('Failed to generate example QR: ' . $e->getMessage());
                 return null;
