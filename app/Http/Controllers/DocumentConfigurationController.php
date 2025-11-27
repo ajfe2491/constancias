@@ -144,6 +144,25 @@ class DocumentConfigurationController extends Controller
                 : $data['text_elements'];
         }
 
+        // Ensure boolean fields are correctly set from request
+        // If it's an AJAX request with JSON, boolean false is sent.
+        // If it's a form submit, unchecked checkboxes are missing.
+        // We need to handle both cases.
+        if ($request->isJson()) {
+            $tempConfig->show_qr = $request->boolean('show_qr');
+        } else {
+            // For form submissions, presence means true, absence means false (usually)
+            // But here we are likely using axios to send form data or JSON.
+            // Let's rely on $request->boolean which handles "true", "1", "on" and true.
+            // However, if the key is missing in a form submit, it defaults to false.
+            // But if we are just filling from $data which comes from $request->all(),
+            // and $data['show_qr'] is missing, fill() might not touch it if it's not in the array?
+            // No, fill() only updates keys present in the array.
+            // So if 'show_qr' is missing from $data, it keeps the original value.
+            // We must explicitly set it.
+            $tempConfig->show_qr = $request->has('show_qr') ? $request->boolean('show_qr') : false;
+        }
+
         // Ensure background dimensions are set if image exists
         if ($tempConfig->background_image) {
             if (empty($tempConfig->background_width) || $tempConfig->background_width <= 0) {

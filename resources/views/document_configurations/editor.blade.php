@@ -271,14 +271,14 @@
                             <div class="form-control">
                                 <label class="label cursor-pointer gap-2 py-0">
                                     <span class="label-text text-[10px] font-semibold">Mostrar QR</span>
-                                    <input type="checkbox" name="show_qr" class="toggle toggle-primary toggle-xs" {{ $documentConfiguration->show_qr ? 'checked' : '' }}
-                                        @change="refreshPreview()" />
+                                    <input type="checkbox" name="show_qr" class="toggle toggle-primary toggle-xs focus:outline-none"
+                                        :checked="showQr" x-model="showQr" @change="refreshPreview()" />
                                 </label>
                             </div>
                             <div class="form-control">
                                 <label class="label cursor-pointer gap-2 py-0">
                                     <span class="label-text text-[10px] font-semibold">Activo</span>
-                                    <input type="checkbox" name="is_active" class="toggle toggle-success toggle-xs"
+                                    <input type="checkbox" name="is_active" class="toggle toggle-success toggle-xs focus:outline-none"
                                         {{ $documentConfiguration->is_active ? 'checked' : '' }} />
                                 </label>
                             </div>
@@ -486,6 +486,8 @@
 
                     notifications: [],
 
+                    showQr: {{ $documentConfiguration->show_qr ? 'true' : 'false' }},
+                    
                     init() {
                         this.refreshPreview();
                     },
