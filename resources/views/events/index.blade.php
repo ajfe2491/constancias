@@ -57,7 +57,20 @@
                                         </h2>
                                     </div>
                                     <p class="text-xs text-gray-500 uppercase tracking-wide font-semibold">
-                                        {{ $event->type }}</p>
+                                        <span
+                                            class="font-mono bg-base-200 px-1 rounded text-base-content/70 mr-1">{{ $event->key }}</span>
+                                        {{ $event->type }}
+                                    </p>
+
+                                    @if($event->documentConfigurations->count() > 0)
+                                        <div class="mt-2 flex flex-wrap gap-1">
+                                            @foreach($event->documentConfigurations->groupBy('document_type') as $type => $configs)
+                                                <div class="badge badge-ghost badge-xs text-[10px] gap-1 h-5">
+                                                    <span class="font-bold">{{ $configs->count() }}</span> {{ ucfirst($type) }}
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="dropdown dropdown-end">
                                     <label tabindex="0"
@@ -84,7 +97,8 @@
                             </div>
 
                             <p class="text-xs text-gray-600 line-clamp-2 mt-2 h-8" title="{{ $event->description }}">
-                                {{ $event->description ?: 'Sin descripción' }}</p>
+                                {{ $event->description ?: 'Sin descripción' }}
+                            </p>
 
                             <div class="flex items-center justify-between mt-4 pt-3 border-t border-base-100 mt-auto">
                                 <div class="flex items-center gap-2 text-xs text-gray-500">
@@ -163,6 +177,20 @@
                                                     class="input input-bordered w-full" required />
                                             </div>
 
+                                            <!-- Clave -->
+                                            <div class="form-control w-full">
+                                                <label class="label">
+                                                    <span class="label-text font-bold">Clave del Evento</span>
+                                                </label>
+                                                <input type="text" name="key" x-model="formData.key"
+                                                    placeholder="Ej. CON2024" class="input input-bordered w-full"
+                                                    required maxlength="20" />
+                                                <label class="label">
+                                                    <span class="label-text-alt text-gray-500">Esta clave se utilizará
+                                                        como prefijo para el folio de las constancias.</span>
+                                                </label>
+                                            </div>
+
                                             <!-- Tipo -->
                                             <div class="form-control w-full">
                                                 <label class="label">
@@ -175,6 +203,11 @@
                                                     <option value="Curso">Curso</option>
                                                     <option value="Taller">Taller</option>
                                                     <option value="Seminario">Seminario</option>
+                                                    <option value="Simposio">Simposio</option>
+                                                    <option value="Conferencia">Conferencia</option>
+                                                    <option value="Diplomado">Diplomado</option>
+                                                    <option value="Foro">Foro</option>
+                                                    <option value="Panel">Panel</option>
                                                     <option value="Otro">Otro</option>
                                                 </select>
                                             </div>
@@ -242,6 +275,7 @@
                 formAction: '{{ route('events.store') }}',
                 formData: {
                     name: '',
+                    key: '',
                     type: '',
                     start_date: '',
                     end_date: '',
@@ -254,6 +288,7 @@
                     this.formAction = '{{ route('events.store') }}';
                     this.formData = {
                         name: '',
+                        key: '',
                         type: '',
                         start_date: '',
                         end_date: '',
@@ -275,6 +310,7 @@
 
                     this.formData = {
                         name: event.name,
+                        key: event.key,
                         type: event.type,
                         start_date: startDate,
                         end_date: endDate,

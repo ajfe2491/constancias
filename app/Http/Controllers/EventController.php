@@ -11,7 +11,7 @@ class EventController extends Controller
      */
     public function index(Request $request)
     {
-        $query = \App\Models\Event::latest();
+        $query = \App\Models\Event::with('documentConfigurations')->latest();
 
         if ($request->has('search')) {
             $search = $request->get('search');
@@ -32,6 +32,7 @@ class EventController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'key' => 'required|string|max:20|unique:events,key',
             'type' => 'required|string|max:255',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -62,6 +63,7 @@ class EventController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'key' => 'required|string|max:20|unique:events,key,' . $event->id,
             'type' => 'required|string|max:255',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
