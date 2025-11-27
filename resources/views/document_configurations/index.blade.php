@@ -75,6 +75,23 @@
                                     <p class="text-xs text-gray-500 uppercase tracking-wide font-semibold">
                                         {{ $config->document_type }}
                                     </p>
+                                    @if($config->event)
+                                        <div class="mt-1">
+                                            <span class="badge badge-primary badge-outline badge-xs gap-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                {{ $config->event->key }}
+                                            </span>
+                                            <span
+                                                class="text-[10px] text-gray-400 ml-1 truncate max-w-[150px] inline-block align-bottom"
+                                                title="{{ $config->event->name }}">
+                                                {{ $config->event->name }}
+                                            </span>
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="dropdown dropdown-end">
                                     <label tabindex="0"
