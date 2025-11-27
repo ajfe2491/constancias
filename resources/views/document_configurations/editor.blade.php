@@ -329,7 +329,7 @@
                                 <label class="label cursor-pointer gap-2 py-0">
                                     <span class="label-text text-[10px] font-semibold">Mostrar QR</span>
                                     <input type="checkbox" name="show_qr" class="toggle toggle-primary toggle-xs focus:outline-none"
-                                        :checked="showQr" x-model="showQr" @change="refreshPreview()" />
+                                        x-model="showQr" @change="refreshPreview()" />
                                 </label>
                             </div>
                             <div class="form-control">
@@ -536,9 +536,9 @@
                 return {
                     loading: false,
                     activeSection: 'basic',
-                    textElements: @json($documentConfiguration->text_elements ?? []),
-                    sampleData: @json($documentConfiguration->sample_data ?? ['nombre' => 'Juan Pérez']),
-                    previewUrl: previewUrl,
+                        textElements: @json($documentConfiguration->text_elements ?? []),
+                        showQr: {{ $documentConfiguration->show_qr ? 'true' : 'false' }},
+                        activeElement: null,previewUrl,
                     newVarKey: '',
 
                     notifications: [],

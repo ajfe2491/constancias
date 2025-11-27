@@ -90,6 +90,9 @@ class DocumentConfigurationController extends Controller
 
         $data = $request->except('background_image', 'text_elements');
 
+        \Illuminate\Support\Facades\Log::info('Update Request Data:', $request->all());
+        \Illuminate\Support\Facades\Log::info('Has show_qr:', ['has' => $request->has('show_qr')]);
+
         if ($request->hasFile('background_image')) {
             if ($documentConfiguration->background_image) {
                 Storage::disk('public')->delete($documentConfiguration->background_image);
@@ -113,7 +116,11 @@ class DocumentConfigurationController extends Controller
         $data['folio_year_prefix'] = $request->has('folio_year_prefix');
         $data['enable_live_preview'] = $request->has('enable_live_preview');
 
+        \Illuminate\Support\Facades\Log::info('Data for Update:', $data);
+
         $documentConfiguration->update($data);
+
+        \Illuminate\Support\Facades\Log::info('Model after Update:', $documentConfiguration->fresh()->toArray());
 
         if ($request->ajax()) {
             return response()->json(['success' => true, 'message' => 'Guardado correctamente']);
