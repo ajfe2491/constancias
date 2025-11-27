@@ -546,7 +546,9 @@
                     notifications: [],
                     
                     init() {
-                        this.refreshPreview();
+                        this.$nextTick(() => {
+                            this.refreshPreview();
+                        });
                     },
 
                     showNotification(message, type = 'info') {

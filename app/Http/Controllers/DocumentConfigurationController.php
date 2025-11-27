@@ -135,10 +135,14 @@ class DocumentConfigurationController extends Controller
      */
     public function preview(Request $request, DocumentConfiguration $documentConfiguration)
     {
+        $tempConfig = clone $documentConfiguration;
         $data = $request->all();
 
-        // Create a temporary instance with the incoming data
-        $tempConfig = $documentConfiguration->replicate();
+        \Illuminate\Support\Facades\Log::info('Preview Request Data:', $data);
+        \Illuminate\Support\Facades\Log::info('Preview Has show_qr:', ['has' => $request->has('show_qr')]);
+
+        // Fill temp config with request data
+        // Note: fill() only updates attributes present in the array.
         $tempConfig->fill($data);
 
         // Handle temporary background image upload
