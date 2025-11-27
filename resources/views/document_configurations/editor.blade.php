@@ -536,14 +536,14 @@
                 return {
                     loading: false,
                     activeSection: 'basic',
-                        textElements: @json($documentConfiguration->text_elements ?? []),
-                        showQr: {{ $documentConfiguration->show_qr ? 'true' : 'false' }},
-                        activeElement: null,previewUrl,
+                    textElements: @json($documentConfiguration->text_elements ?? []),
+                    sampleData: @json($documentConfiguration->sample_data ?? ['nombre' => 'Juan Pérez']),
+                    showQr: {{ $documentConfiguration->show_qr ? 'true' : 'false' }},
+                    activeElement: null,
+                    previewUrl: previewUrl,
                     newVarKey: '',
 
                     notifications: [],
-
-                    showQr: {{ $documentConfiguration->show_qr ? 'true' : 'false' }},
                     
                     init() {
                         this.refreshPreview();
