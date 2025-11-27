@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DocumentConfiguration;
+use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use chillerlan\QRCode\QRCode;
@@ -14,13 +15,19 @@ class DocumentConfigurationController extends Controller
      */
     public function index(Request $request)
     {
-        $query = DocumentConfiguration::whereNull('event_id')->latest();
+        // Group by event (event_id IS NULL puts generics at the end), then by latest creation
+        $query = DocumentConfiguration::with('event')
+            ->orderByRaw('event_id IS NULL, event_id DESC, created_at DESC');
 
         if ($request->has('search')) {
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
                 $q->where('document_name', 'like', "%{$search}%")
-                    ->orWhere('document_type', 'like', "%{$search}%");
+                    ->orWhere('document_type', 'like', "%{$search}%")
+                    ->orWhereHas('event', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('key', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -29,14 +36,13 @@ class DocumentConfigurationController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
-     */
-    /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
-        return view('document_configurations.create');
+        $events = Event::where('is_active', true)->latest()->get();
+        $preselectedEventId = $request->query('event_id');
+        return view('document_configurations.create', compact('events', 'preselectedEventId'));
     }
 
     /**
@@ -48,10 +54,11 @@ class DocumentConfigurationController extends Controller
             'document_name' => 'required|string|max:255',
             'document_type' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'event_id' => 'nullable|exists:events,id',
         ]);
 
         // Set defaults
-        $data = $request->only(['document_name', 'document_type', 'description']);
+        $data = $request->only(['document_name', 'document_type', 'description', 'event_id']);
         $data['page_orientation'] = 'L';
         $data['page_size'] = 'Letter';
         $data['is_active'] = true;
@@ -68,7 +75,8 @@ class DocumentConfigurationController extends Controller
      */
     public function edit(DocumentConfiguration $documentConfiguration)
     {
-        return view('document_configurations.editor', compact('documentConfiguration'));
+        $events = Event::where('is_active', true)->latest()->get();
+        return view('document_configurations.editor', compact('documentConfiguration', 'events'));
     }
 
     /**
@@ -86,6 +94,7 @@ class DocumentConfigurationController extends Controller
             'folio_start' => 'required|integer|min:1',
             'folio_digits' => 'required|integer|min:1|max:20',
             'folio_year_prefix' => 'boolean',
+            'event_id' => 'nullable|exists:events,id',
         ]);
 
         $data = $request->except('background_image', 'text_elements');

@@ -157,6 +157,19 @@
                     <!-- 1. Información Básica -->
                     <div x-show="activeSection === 'basic'" class="space-y-2">
                         <div class="text-xs font-bold uppercase tracking-wider mb-2 opacity-50">Información Básica</div>
+                        
+                        <div class="form-control w-full mb-2">
+                            <label class="label py-0 mb-1"><span class="label-text text-xs font-semibold">Evento (Opcional)</span></label>
+                            <select name="event_id" class="select select-bordered select-sm w-full text-xs" @change="refreshPreview()">
+                                <option value="">-- Sin Evento (Genérico) --</option>
+                                @foreach($events as $event)
+                                    <option value="{{ $event->id }}" {{ $documentConfiguration->event_id == $event->id ? 'selected' : '' }}>
+                                        {{ $event->name }} ({{ $event->key }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <div class="form-control w-full mb-2">
                             <label class="label py-0 mb-1"><span
                                     class="label-text text-[10px] font-semibold">Nombre</span></label>

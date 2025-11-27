@@ -21,6 +21,36 @@
 
                     <div class="form-control w-full">
                         <label class="label">
+                            <span class="label-text font-bold">Evento (Opcional)</span>
+                        </label>
+                        <select name="event_id_select" class="select select-bordered w-full" {{ isset($preselectedEventId) ? 'disabled' : '' }}>
+                            <option value="">-- Sin Evento (Genérico) --</option>
+                            @foreach($events as $event)
+                                <option value="{{ $event->id }}" {{ (isset($preselectedEventId) && $preselectedEventId == $event->id) ? 'selected' : '' }}>
+                                    {{ $event->name }} ({{ $event->key }})
+                                </option>
+                            @endforeach
+                        </select>
+
+                        @if(isset($preselectedEventId))
+                            <input type="hidden" name="event_id" value="{{ $preselectedEventId }}">
+                            <label class="label">
+                                <span class="label-text-alt text-primary font-bold">Vinculado automáticamente al evento
+                                    seleccionado.</span>
+                            </label>
+                        @else
+                            <script>
+                                document.querySelector('select[name="event_id_select"]').setAttribute('name', 'event_id');
+                            </script>
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Si seleccionas un evento, esta configuración se
+                                    vinculará a él.</span>
+                            </label>
+                        @endif
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label">
                             <span class="label-text font-bold">Tipo de Documento</span>
                         </label>
                         <select name="document_type" class="select select-bordered w-full">
