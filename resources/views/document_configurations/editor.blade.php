@@ -170,6 +170,32 @@
                             <textarea name="description"
                                 class="textarea textarea-bordered h-12 text-[10px] leading-tight">{{ old('description', $documentConfiguration->description) }}</textarea>
                         </div>
+
+                        <div class="divider my-1 text-[10px] font-bold opacity-50">Folio</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Inicio</span></label>
+                                <input type="number" name="folio_start"
+                                    value="{{ old('folio_start', $documentConfiguration->folio_start ?? 1) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" min="1"
+                                    @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Dígitos</span></label>
+                                <input type="number" name="folio_digits"
+                                    value="{{ old('folio_digits', $documentConfiguration->folio_digits ?? 4) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" min="1" max="20"
+                                    @change="refreshPreview()" />
+                            </div>
+                        </div>
+                        <div class="form-control">
+                            <label class="label cursor-pointer gap-2 py-0 justify-start">
+                                <input type="checkbox" name="folio_year_prefix" class="checkbox checkbox-xs checkbox-primary"
+                                    {{ $documentConfiguration->folio_year_prefix ? 'checked' : '' }}
+                                    @change="refreshPreview()" />
+                                <span class="label-text text-[10px]">Prefijo Año (Ej. {{ date('Y') }}-0001)</span>
+                            </label>
+                        </div>
                     </div>
 
                     <!-- 2. Configuración de Página -->
