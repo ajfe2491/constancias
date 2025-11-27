@@ -28,6 +28,9 @@ class DocumentConfiguration extends Model
         'qr_y',
         'qr_width',
         'qr_height',
+        'folio_start',
+        'folio_digits',
+        'folio_year_prefix',
         'text_elements',
         'default_font_family',
         'default_font_size',
@@ -73,6 +76,16 @@ class DocumentConfiguration extends Model
      */
     public function generatePDF($data = [])
     {
+        // Folio Logic
+        $folioNumber = $data['folio'] ?? $this->folio_start ?? 1;
+        $formattedFolio = str_pad($folioNumber, $this->folio_digits ?? 4, '0', STR_PAD_LEFT);
+
+        if ($this->folio_year_prefix) {
+            $formattedFolio = date('Y') . '-' . $formattedFolio;
+        }
+
+        $data['folio'] = $formattedFolio;
+
         // Datos del sistema (Hardcoded por ahora, idealmente vendrían de una configuración)
         $systemData = [
             'congress_name' => 'Congreso de Constancias',

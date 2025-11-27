@@ -83,6 +83,9 @@ class DocumentConfigurationController extends Controller
             'page_orientation' => 'required|in:P,L',
             'page_size' => 'required|string',
             'text_elements' => 'nullable|string', // JSON string
+            'folio_start' => 'required|integer|min:1',
+            'folio_digits' => 'required|integer|min:1|max:20',
+            'folio_year_prefix' => 'boolean',
         ]);
 
         $data = $request->except('background_image', 'text_elements');
@@ -103,9 +106,11 @@ class DocumentConfigurationController extends Controller
             $data['sample_data'] = $request->sample_data;
         }
 
-        // Checkboxes
-        $data['is_active'] = $request->has('is_active');
-        $data['show_qr'] = $request->has('show_qr');
+        // Asegurar que los campos booleanos se procesen correctamente
+        $data['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : false;
+        $data['show_qr'] = $request->has('show_qr') ? $request->boolean('show_qr') : false;
+        $data['folio_year_prefix'] = $request->has('folio_year_prefix') ? $request->boolean('folio_year_prefix') : false;
+        $data['enable_live_preview'] = $request->has('enable_live_preview') ? true : false;
 
         $documentConfiguration->update($data);
 
@@ -189,7 +194,17 @@ class DocumentConfigurationController extends Controller
         if ($tempConfig->show_qr) {
             $qrPath = $this->ensureExampleQr();
             if ($qrPath) {
-                $sampleData['qr_path'] = $qrPath;
+                if (isset($data['qr_width']))
+                    $tempConfig->qr_width = $data['qr_width'];
+                if (isset($data['qr_height']))
+                    $tempConfig->qr_height = $data['qr_height'];
+
+                // Campos de Folio
+                if (isset($data['folio_start']))
+                    $tempConfig->folio_start = $data['folio_start'];
+                if (isset($data['folio_digits']))
+                    $tempConfig->folio_digits = $data['folio_digits'];
+                $tempConfig->folio_year_prefix = isset($data['folio_year_prefix']);
             }
         }
 

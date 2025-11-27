@@ -38,6 +38,31 @@
                             placeholder="Descripción breve..."></textarea>
                     </div>
 
+                    <div class="divider">Configuración de Folio</div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-bold">Folio Inicial</span>
+                            </label>
+                            <input type="number" name="folio_start" class="input input-bordered w-full" value="1"
+                                min="1" required />
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-bold">Dígitos</span>
+                            </label>
+                            <input type="number" name="folio_digits" class="input input-bordered w-full" value="4"
+                                min="1" max="20" required />
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label cursor-pointer">
+                                <span class="label-text font-bold">Prefijo Año (Ej. 2025-)</span>
+                                <input type="checkbox" name="folio_year_prefix" class="checkbox checkbox-primary" />
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="flex justify-end gap-3 pt-4">
                         <a href="{{ route('document-configurations.index') }}" class="btn btn-ghost">Cancelar</a>
                         <button type="submit" class="btn btn-primary">Crear y Personalizar</button>

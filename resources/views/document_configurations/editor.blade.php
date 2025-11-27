@@ -264,7 +264,38 @@
                         </div>
                     </div>
 
-                    <!-- 4. Opciones -->
+                    <!-- 4. Folio -->
+                    <div x-show="activeSection === 'folio'" class="space-y-2">
+                        <div class="text-xs font-bold uppercase tracking-wider mb-2 opacity-50">Configuración de Folio</div>
+                        <div class="grid grid-cols-2 gap-2 px-1 mb-2">
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Folio Inicial</span></label>
+                                <input type="number" name="folio_start"
+                                    value="{{ old('folio_start', $documentConfiguration->folio_start ?? 1) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" min="1"
+                                    @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Dígitos</span></label>
+                                <input type="number" name="folio_digits"
+                                    value="{{ old('folio_digits', $documentConfiguration->folio_digits ?? 4) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" min="1" max="20"
+                                    @change="refreshPreview()" />
+                            </div>
+                        </div>
+                        <div class="px-1 mb-2">
+                             <div class="form-control">
+                                <label class="label cursor-pointer gap-2 py-0 justify-start">
+                                    <input type="checkbox" name="folio_year_prefix" class="checkbox checkbox-xs checkbox-primary"
+                                        {{ $documentConfiguration->folio_year_prefix ? 'checked' : '' }}
+                                        @change="refreshPreview()" />
+                                    <span class="label-text text-[10px]">Prefijo Año (Ej. {{ date('Y') }}-0001)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Opciones -->
                     <div x-show="activeSection === 'options'" class="space-y-2">
                         <div class="text-xs font-bold uppercase tracking-wider mb-2 opacity-50">Opciones</div>
                         <div class="flex justify-between px-1 mb-2">
