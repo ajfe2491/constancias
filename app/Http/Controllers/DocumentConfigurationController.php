@@ -194,6 +194,8 @@ class DocumentConfigurationController extends Controller
         if ($tempConfig->show_qr) {
             $qrPath = $this->ensureExampleQr();
             if ($qrPath) {
+                $sampleData['qr_path'] = $qrPath;
+
                 if (isset($data['qr_width']))
                     $tempConfig->qr_width = $data['qr_width'];
                 if (isset($data['qr_height']))
