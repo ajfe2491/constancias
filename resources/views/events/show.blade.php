@@ -5,11 +5,21 @@
                 {{ $event->name }}
             </h2>
             <div class="flex gap-2">
-                <a href="{{ route('events.edit', $event) }}" class="btn btn-ghost btn-sm">
-                    Editar Evento
-                </a>
-                <a href="{{ route('events.index') }}" class="btn btn-ghost btn-sm">
+                <a href="{{ route('events.index') }}" class="btn btn-outline btn-sm gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
                     Volver
+                </a>
+                <a href="{{ route('events.edit', $event) }}" class="btn btn-primary btn-sm gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    Editar Evento
                 </a>
             </div>
         </div>
@@ -20,30 +30,52 @@
 
             <!-- Detalles del Evento -->
             <div class="bg-base-100 shadow-sm sm:rounded-lg border border-base-200 p-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <h3 class="text-sm font-bold opacity-50 uppercase tracking-wider mb-1">Tipo</h3>
-                        <p class="font-medium">{{ $event->type }}</p>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold opacity-50 uppercase tracking-wider mb-1">Fechas</h3>
-                        <p class="font-medium">
-                            {{ $event->start_date ? $event->start_date->format('d M Y') : 'N/A' }}
-                            @if($event->end_date)
-                                - {{ $event->end_date->format('d M Y') }}
-                            @endif
-                        </p>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold opacity-50 uppercase tracking-wider mb-1">Estado</h3>
-                        <div class="badge {{ $event->is_active ? 'badge-success' : 'badge-ghost' }}">
-                            {{ $event->is_active ? 'Activo' : 'Inactivo' }}
+                <div class="flex flex-col gap-8">
+                    <!-- Top Row: Key Info -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                        <div>
+                            <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-2">Clave</h3>
+                            <p class="font-medium font-mono bg-base-200 inline-block px-3 py-1 rounded text-sm">
+                                {{ $event->key }}
+                            </p>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-2">Tipo</h3>
+                            <p class="font-medium text-lg">{{ $event->type }}</p>
+                        </div>
+                        <div class="md:col-span-1">
+                            <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-2">Fechas</h3>
+                            <p class="font-medium">
+                                {{ $event->start_date ? $event->start_date->format('d M Y') : 'N/A' }}
+                                @if($event->end_date)
+                                    <span class="text-gray-400 mx-1">|</span> {{ $event->end_date->format('d M Y') }}
+                                @endif
+                            </p>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-2">Estado</h3>
+                            <div class="badge {{ $event->is_active ? 'badge-success' : 'badge-ghost' }} badge-lg">
+                                {{ $event->is_active ? 'Activo' : 'Inactivo' }}
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Bottom Row: Description & Meta -->
                     @if($event->description)
-                        <div class="md:col-span-3">
-                            <h3 class="text-sm font-bold opacity-50 uppercase tracking-wider mb-1">Descripción</h3>
-                            <p class="opacity-80">{{ $event->description }}</p>
+                        <div class="pt-6 border-t border-base-200">
+                            <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-2">Descripción</h3>
+                            <div class="flex flex-col md:flex-row justify-between items-end gap-4">
+                                <p class="opacity-80 max-w-4xl">{{ $event->description }}</p>
+                                <div class="text-xs opacity-50 whitespace-nowrap">
+                                    Última actualización: {{ $event->updated_at->diffForHumans() }}
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="flex justify-end pt-2">
+                            <div class="text-xs opacity-50">
+                                Última actualización: {{ $event->updated_at->diffForHumans() }}
+                            </div>
                         </div>
                     @endif
                 </div>

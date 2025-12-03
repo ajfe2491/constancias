@@ -95,6 +95,15 @@ class DocumentConfigurationController extends Controller
             'folio_digits' => 'required|integer|min:1|max:20',
             'folio_year_prefix' => 'boolean',
             'event_id' => 'nullable|exists:events,id',
+            'show_folio' => 'boolean',
+            'folio_x' => 'nullable|numeric',
+            'folio_y' => 'nullable|numeric',
+            'folio_width' => 'nullable|numeric',
+            'folio_height' => 'nullable|numeric',
+            'folio_font_size' => 'nullable|integer|min:1',
+            'folio_color' => 'nullable|string',
+            'folio_alignment' => 'nullable|in:L,C,R',
+            'background_fit' => 'boolean',
         ]);
 
         $data = $request->except('background_image', 'text_elements');
@@ -119,9 +128,12 @@ class DocumentConfigurationController extends Controller
         // Asegurar que los campos booleanos se procesen correctamente
         // Para checkboxes estándar, la presencia del campo indica "true".
         $data['is_active'] = $request->has('is_active');
+        $data['is_active'] = $request->has('is_active');
         $data['show_qr'] = $request->has('show_qr');
         $data['folio_year_prefix'] = $request->has('folio_year_prefix');
+        $data['show_folio'] = $request->has('show_folio');
         $data['enable_live_preview'] = $request->has('enable_live_preview');
+        $data['background_fit'] = $request->has('background_fit');
 
         $documentConfiguration->update($data);
 
@@ -145,6 +157,21 @@ class DocumentConfigurationController extends Controller
         // Fill temp config with request data
         // Note: fill() only updates attributes present in the array.
         $tempConfig->fill($data);
+
+        // Manually load event relation for preview if event_id is changed/present
+        if ($request->filled('event_id')) {
+            $event = Event::find($request->event_id);
+            if ($event) {
+                $tempConfig->setRelation('event', $event);
+            }
+        } else {
+            // If no event_id, ensure no event is attached (or keep existing if not changed? 
+            // If changed to empty, fill() sets event_id to null, but relation might persist if lazy loaded? 
+            // setRelation('event', null) is safer if we want to simulate "no event")
+            if (array_key_exists('event_id', $data) && empty($data['event_id'])) {
+                $tempConfig->setRelation('event', null);
+            }
+        }
 
         // Handle temporary background image upload
         if ($request->hasFile('background_image')) {
@@ -179,6 +206,7 @@ class DocumentConfigurationController extends Controller
             // So if 'show_qr' is missing from $data, it keeps the original value.
             // We must explicitly set it.
             $tempConfig->show_qr = $request->has('show_qr') ? $request->boolean('show_qr') : false;
+            $tempConfig->show_folio = $request->has('show_folio') ? $request->boolean('show_folio') : false;
         }
 
         // Ensure background dimensions are set if image exists

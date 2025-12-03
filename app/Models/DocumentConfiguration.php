@@ -23,6 +23,7 @@ class DocumentConfiguration extends Model
         'background_y',
         'background_width',
         'background_height',
+        'background_fit',
         'show_qr',
         'qr_x',
         'qr_y',
@@ -30,7 +31,17 @@ class DocumentConfiguration extends Model
         'qr_height',
         'folio_start',
         'folio_digits',
+        'folio_start',
+        'folio_digits',
         'folio_year_prefix',
+        'show_folio',
+        'folio_x',
+        'folio_y',
+        'folio_width',
+        'folio_height',
+        'folio_font_size',
+        'folio_color',
+        'folio_alignment',
         'text_elements',
         'default_font_family',
         'default_font_size',
@@ -61,6 +72,7 @@ class DocumentConfiguration extends Model
         'background_y' => 'decimal:2',
         'background_width' => 'decimal:2',
         'background_height' => 'decimal:2',
+        'background_fit' => 'boolean',
         'qr_x' => 'decimal:2',
         'qr_y' => 'decimal:2',
         'qr_width' => 'decimal:2',
@@ -69,6 +81,12 @@ class DocumentConfiguration extends Model
         'margin_bottom' => 'decimal:2',
         'margin_left' => 'decimal:2',
         'margin_right' => 'decimal:2',
+        'folio_year_prefix' => 'boolean',
+        'show_folio' => 'boolean',
+        'folio_x' => 'decimal:2',
+        'folio_y' => 'decimal:2',
+        'folio_width' => 'decimal:2',
+        'folio_height' => 'decimal:2',
     ];
 
     /**
@@ -82,6 +100,10 @@ class DocumentConfiguration extends Model
 
         if ($this->folio_year_prefix) {
             $formattedFolio = date('Y') . '-' . $formattedFolio;
+        }
+
+        if ($this->event && $this->event->key) {
+            $formattedFolio = $this->event->key . '-' . $formattedFolio;
         }
 
         $data['folio'] = $formattedFolio;
@@ -126,6 +148,18 @@ class DocumentConfiguration extends Model
         // QR (Placeholder)
         if ($this->show_qr && isset($data['qr_path']) && file_exists($data['qr_path'])) {
             $pdf->Image($data['qr_path'], $this->qr_x, $this->qr_y, $this->qr_width, $this->qr_height);
+        }
+
+        // Fixed Folio
+        if ($this->show_folio) {
+            $folioText = $data['folio'] ?? '';
+            $pdf->SetFont($this->default_font_family ?? 'Arial', '', $this->folio_font_size ?? 12);
+
+            $folioColor = $this->hexToRgb($this->folio_color ?? '#000000');
+            $pdf->SetTextColor($folioColor['r'], $folioColor['g'], $folioColor['b']);
+
+            $pdf->SetXY($this->folio_x, $this->folio_y);
+            $pdf->Cell($this->folio_width, $this->folio_height, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $folioText), 0, 0, $this->folio_alignment ?? 'C');
         }
 
         // Elementos de Texto

@@ -57,6 +57,14 @@ class EventController extends Controller
     }
 
     /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(\App\Models\Event $event)
+    {
+        return view('events.edit', compact('event'));
+    }
+
+    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, \App\Models\Event $event)
