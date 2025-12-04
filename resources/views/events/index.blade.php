@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-12" x-data="eventManager()">
+    <div x-data="eventManager()">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
 
@@ -44,28 +44,29 @@
                 @foreach($events as $event)
                     <div
                         class="card bg-base-100 shadow-sm hover:shadow-md transition-all duration-200 border border-base-200 group h-full">
-                        <div class="card-body p-4 flex flex-col">
-                            <div class="flex justify-between items-start gap-2">
+                        <div class="card-body p-2 flex flex-col">
+                            <div class="flex justify-between items-start gap-1">
                                 <div class="flex-1 min-w-0">
                                     <div class="tooltip tooltip-bottom before:text-xs before:max-w-[200px] before:content-[attr(data-tip)]"
                                         data-tip="{{ $event->name }}">
-                                        <h2 class="font-bold text-base truncate text-left">
+                                        <h2 class="font-bold text-xs truncate text-left leading-none">
                                             <a href="{{ route('events.show', $event) }}"
                                                 class="hover:text-primary transition-colors">
                                                 {{ $event->name }}
                                             </a>
                                         </h2>
                                     </div>
-                                    <p class="text-xs text-gray-500 uppercase tracking-wide font-semibold">
+                                    <p
+                                        class="text-[9px] text-gray-500 uppercase tracking-wide font-semibold leading-none mt-0.5">
                                         <span
                                             class="font-mono bg-base-200 px-1 rounded text-base-content/70 mr-1">{{ $event->key }}</span>
                                         {{ $event->type }}
                                     </p>
 
                                     @if($event->documentConfigurations->count() > 0)
-                                        <div class="mt-2 flex flex-wrap gap-1">
+                                        <div class="mt-0.5 flex flex-wrap gap-0.5">
                                             @foreach($event->documentConfigurations->groupBy('document_type') as $type => $configs)
-                                                <div class="badge badge-ghost badge-xs text-[10px] gap-1 h-5">
+                                                <div class="badge badge-ghost badge-xs text-[9px] gap-1 h-3.5 px-1">
                                                     <span class="font-bold">{{ $configs->count() }}</span> {{ ucfirst($type) }}
                                                 </div>
                                             @endforeach
@@ -74,8 +75,8 @@
                                 </div>
                                 <div class="dropdown dropdown-end">
                                     <label tabindex="0"
-                                        class="btn btn-ghost btn-circle btn-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        class="btn btn-ghost btn-circle btn-xs opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 min-h-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -96,14 +97,15 @@
                                 </div>
                             </div>
 
-                            <p class="text-xs text-gray-600 line-clamp-2 mt-2 h-8" title="{{ $event->description }}">
+                            <p class="text-[9px] text-gray-600 line-clamp-1 mt-0.5 h-auto leading-none"
+                                title="{{ $event->description }}">
                                 {{ $event->description ?: 'Sin descripción' }}
                             </p>
 
-                            <div class="flex items-center justify-between mt-4 pt-3 border-t border-base-100 mt-auto">
-                                <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <div class="flex items-center justify-between mt-1 pt-1 border-t border-base-100 mt-auto">
+                                <div class="flex items-center gap-2 text-[9px] text-gray-500">
                                     <div
-                                        class="badge {{ $event->is_active ? 'badge-success' : 'badge-ghost' }} badge-xs gap-1">
+                                        class="badge {{ $event->is_active ? 'badge-success' : 'badge-ghost' }} badge-xs gap-1 h-1.5 w-1.5 p-0">
                                     </div>
                                     <span>{{ $event->start_date ? $event->start_date->format('d M') : 'N/A' }}</span>
                                     @if($event->end_date)
@@ -111,7 +113,7 @@
                                     @endif
                                 </div>
                                 <a href="{{ route('events.show', $event) }}"
-                                    class="btn btn-ghost btn-xs text-primary">Ver</a>
+                                    class="btn btn-ghost btn-xs text-primary h-5 min-h-0 text-[9px]">Ver</a>
                             </div>
                         </div>
                     </div>
@@ -162,11 +164,28 @@
                                 </div>
                                 <div class="relative mt-6 flex-1 px-4 sm:px-6">
                                     <!-- Form -->
-                                    <form :action="formAction" method="POST">
+                                    <form :action="formAction" method="POST" enctype="multipart/form-data">
                                         @csrf
                                         <input type="hidden" name="_method" :value="isEditing ? 'PUT' : 'POST'">
 
                                         <div class="space-y-6">
+                                            <!-- Logo -->
+                                            <div class="form-control w-full">
+                                                <label class="label">
+                                                    <span class="label-text font-bold">Logotipo del Evento</span>
+                                                </label>
+                                                <div x-show="isEditing && formData.logo_url" class="mb-2">
+                                                    <img :src="formData.logo_url" alt="Logo actual"
+                                                        class="h-16 w-auto object-contain border rounded p-1">
+                                                </div>
+                                                <input type="file" name="logo"
+                                                    class="file-input file-input-bordered w-full" accept="image/*" />
+                                                <label class="label">
+                                                    <span class="label-text-alt text-gray-500">Opcional. Se mostrará en
+                                                        los correos electrónicos.</span>
+                                                </label>
+                                            </div>
+
                                             <!-- Nombre -->
                                             <div class="form-control w-full">
                                                 <label class="label">
@@ -293,7 +312,8 @@
                         start_date: '',
                         end_date: '',
                         description: '',
-                        is_active: true
+                        is_active: true,
+                        logo_url: null
                     };
                     this.slideOverOpen = true;
                 },
@@ -315,7 +335,8 @@
                         start_date: startDate,
                         end_date: endDate,
                         description: event.description,
-                        is_active: !!event.is_active
+                        is_active: !!event.is_active,
+                        logo_url: event.logo ? '/storage/' + event.logo : null
                     };
                     this.slideOverOpen = true;
                 }

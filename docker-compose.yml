@@ -2,15 +2,39 @@ services:
   app:
     build:
       context: .
+      args:
+        user: erick
+        uid: 1000
     container_name: constancias-app
     restart: unless-stopped
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini:ro
     networks:
       - constancias-net
     depends_on:
       - db
+
+  queue:
+    build:
+      context: .
+      args:
+        user: erick
+        uid: 1000
+    container_name: constancias-queue
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini:ro
+    command: php artisan queue:work --tries=3 --timeout=90
+    networks:
+      - constancias-net
+    depends_on:
+      - app
+      - db
+      - redis
 
   web:
     image: nginx:1.27
@@ -55,7 +79,7 @@ services:
 volumes:
   db_data:
 
+
 networks:
   constancias-net:
     driver: bridge
-

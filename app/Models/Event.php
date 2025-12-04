@@ -14,6 +14,7 @@ class Event extends Model
         'end_date',
         'description',
         'is_active',
+        'logo',
     ];
 
     protected $casts = [

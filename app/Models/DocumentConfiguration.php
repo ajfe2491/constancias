@@ -14,6 +14,7 @@ class DocumentConfiguration extends Model
         'document_type',
         'document_name',
         'description',
+        'email_message',
         'is_active',
         'page_orientation',
         'page_size',

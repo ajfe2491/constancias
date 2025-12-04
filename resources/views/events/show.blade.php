@@ -25,63 +25,78 @@
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div>
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
-            <!-- Detalles del Evento -->
-            <div class="bg-base-100 shadow-sm sm:rounded-lg border border-base-200 p-6">
-                <div class="flex flex-col gap-8">
-                    <!-- Top Row: Key Info -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-                        <div>
-                            <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-2">Clave</h3>
-                            <p class="font-medium font-mono bg-base-200 inline-block px-3 py-1 rounded text-sm">
-                                {{ $event->key }}
-                            </p>
-                        </div>
-                        <div>
-                            <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-2">Tipo</h3>
-                            <p class="font-medium text-lg">{{ $event->type }}</p>
-                        </div>
-                        <div class="md:col-span-1">
-                            <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-2">Fechas</h3>
-                            <p class="font-medium">
-                                {{ $event->start_date ? $event->start_date->format('d M Y') : 'N/A' }}
-                                @if($event->end_date)
-                                    <span class="text-gray-400 mx-1">|</span> {{ $event->end_date->format('d M Y') }}
-                                @endif
-                            </p>
-                        </div>
-                        <div>
-                            <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-2">Estado</h3>
-                            <div class="badge {{ $event->is_active ? 'badge-success' : 'badge-ghost' }} badge-lg">
-                                {{ $event->is_active ? 'Activo' : 'Inactivo' }}
-                            </div>
-                        </div>
-                    </div>
+            {{-- FILA: Logo (izquierda) + Datos del evento (derecha) --}}
+            <div class="gap-6" style="display:grid; grid-template-columns:20% 1fr; align-items:flex-start;">
 
-                    <!-- Bottom Row: Description & Meta -->
-                    @if($event->description)
-                        <div class="pt-6 border-t border-base-200">
-                            <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-2">Descripción</h3>
-                            <div class="flex flex-col md:flex-row justify-between items-end gap-4">
-                                <p class="opacity-80 max-w-4xl">{{ $event->description }}</p>
-                                <div class="text-xs opacity-50 whitespace-nowrap">
-                                    Última actualización: {{ $event->updated_at->diffForHumans() }}
+                {{-- TARJETA DEL LOGO --}}
+                <div>
+                    <div class="bg-base-100 shadow-sm sm:rounded-lg border border-base-200 p-4
+                                flex items-center justify-center min-h-[160px]">
+                        @if($event->logo)
+                            <img src="{{ Storage::url($event->logo) }}" alt="Logo del Evento"
+                                class="max-h-32 w-auto object-contain rounded-lg border border-base-200 bg-base-50 p-2">
+                        @else
+                            <span class="text-xs opacity-60">Sin logo</span>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- TARJETA CON DATOS DEL EVENTO --}}
+                <div>
+                    <div class="bg-base-100 shadow-sm sm:rounded-lg border border-base-200 p-4 flex flex-col gap-4">
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Clave</h3>
+                                <p class="font-medium font-mono bg-base-200 inline-block px-2 py-0.5 rounded text-sm">
+                                    {{ $event->key }}
+                                </p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Tipo</h3>
+                                <p class="font-medium text-base">{{ $event->type }}</p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Fechas</h3>
+                                <p class="font-medium text-sm">
+                                    {{ $event->start_date ? $event->start_date->format('d M Y') : 'N/A' }}
+                                    @if($event->end_date)
+                                        <span class="text-gray-400 mx-1">|</span> {{ $event->end_date->format('d M Y') }}
+                                    @endif
+                                </p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Estado</h3>
+                                <div class="badge {{ $event->is_active ? 'badge-success' : 'badge-ghost' }} badge-md">
+                                    {{ $event->is_active ? 'Activo' : 'Inactivo' }}
                                 </div>
                             </div>
                         </div>
-                    @else
-                        <div class="flex justify-end pt-2">
-                            <div class="text-xs opacity-50">
-                                Última actualización: {{ $event->updated_at->diffForHumans() }}
+
+                        @if($event->description)
+                            <div class="pt-4 border-t border-base-200">
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Descripción</h3>
+                                <p class="opacity-80 max-w-4xl text-sm">{{ $event->description }}</p>
+                                <div class="text-[10px] opacity-50 mt-2">
+                                    Última actualización: {{ $event->updated_at->diffForHumans() }}
+                                </div>
                             </div>
-                        </div>
-                    @endif
+                        @else
+                            <div class="flex justify-end pt-1">
+                                <div class="text-[10px] opacity-50">
+                                    Última actualización: {{ $event->updated_at->diffForHumans() }}
+                                </div>
+                            </div>
+                        @endif
+
+                    </div>
                 </div>
             </div>
 
-            <!-- Plantillas de Documentos -->
+            {{-- PLANTILLAS (tarjeta completa debajo) --}}
             <div>
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-bold">Plantillas de Documentos</h3>
@@ -105,8 +120,9 @@
                             </svg>
                         </div>
                         <h3 class="font-bold text-lg">No hay plantillas configuradas</h3>
-                        <p class="opacity-60 mb-6">Crea plantillas específicas para este evento (ej. Constancia de
-                            Asistencia, Ponente, etc.)</p>
+                        <p class="opacity-60 mb-6">
+                            Crea plantillas específicas para este evento (ej. Constancia de Asistencia, Ponente, etc.)
+                        </p>
                         <a href="{{ route('document-configurations.create', ['event_id' => $event->id]) }}"
                             class="btn btn-primary btn-sm">
                             Crear Primera Plantilla
@@ -118,7 +134,7 @@
                             <div
                                 class="card bg-base-100 shadow-sm hover:shadow-md transition-all duration-200 border border-base-200 group h-full">
                                 <!-- Mini Preview Area -->
-                                <figure class="h-32 bg-base-200 relative overflow-hidden group shrink-0">
+                                <figure class="h-20 bg-base-200 relative overflow-hidden group shrink-0">
                                     <iframe
                                         src="{{ route('document-configurations.stream-pdf', $config) }}#toolbar=0&navpanes=0&scrollbar=0&view=Fit"
                                         class="w-full h-full border-none pointer-events-none transform scale-100 origin-top-left"
@@ -135,23 +151,24 @@
                                     </div>
                                 </figure>
 
-                                <div class="card-body p-4 flex flex-col">
-                                    <div class="flex justify-between items-start gap-2">
+                                <div class="card-body p-2 flex flex-col">
+                                    <div class="flex justify-between items-start gap-1">
                                         <div class="flex-1 min-w-0">
                                             <div class="tooltip tooltip-bottom before:text-xs before:max-w-[200px] before:content-[attr(data-tip)]"
                                                 data-tip="{{ $config->document_name }}">
-                                                <h4 class="font-bold text-base truncate text-left">
+                                                <h4 class="font-bold text-xs truncate text-left leading-none">
                                                     {{ $config->document_name }}
                                                 </h4>
                                             </div>
-                                            <p class="text-xs text-gray-500 uppercase tracking-wide font-semibold">
+                                            <p
+                                                class="text-[10px] text-gray-500 uppercase tracking-wide font-semibold leading-none mt-0.5">
                                                 {{ $config->document_type }}
                                             </p>
                                         </div>
                                         <div class="dropdown dropdown-end">
                                             <label tabindex="0"
-                                                class="btn btn-ghost btn-circle btn-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                                class="btn btn-ghost btn-circle btn-xs opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 min-h-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -159,7 +176,10 @@
                                             </label>
                                             <ul tabindex="0"
                                                 class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                                                <li><a href="{{ route('document-configurations.edit', $config) }}">Editar</a>
+                                                <li>
+                                                    <a href="{{ route('document-configurations.edit', $config) }}">
+                                                        Editar
+                                                    </a>
                                                 </li>
                                                 <li>
                                                     <form action="{{ route('document-configurations.destroy', $config) }}"
@@ -173,15 +193,16 @@
                                         </div>
                                     </div>
 
-                                    <p class="text-xs text-gray-600 line-clamp-2 mt-2 h-8" title="{{ $config->description }}">
+                                    <p class="text-[9px] text-gray-600 line-clamp-1 mt-0.5 h-auto leading-none"
+                                        title="{{ $config->description }}">
                                         {{ $config->description ?: 'Sin descripción' }}
                                     </p>
 
                                     <div
-                                        class="card-actions justify-between items-center border-t border-base-100 pt-3 mt-auto">
-                                        <div class="flex items-center text-xs text-gray-400">
+                                        class="card-actions justify-between items-center border-t border-base-100 pt-1 mt-auto">
+                                        <div class="flex items-center text-[10px] text-gray-400">
                                             <div
-                                                class="badge {{ $config->is_active ? 'badge-success' : 'badge-ghost' }} badge-xs gap-1 mr-2">
+                                                class="badge {{ $config->is_active ? 'badge-success' : 'badge-ghost' }} badge-xs gap-1 mr-2 h-1.5 w-1.5 p-0">
                                             </div>
                                             {{ $config->page_size }} ({{ $config->page_orientation }})
                                         </div>

@@ -37,9 +37,14 @@ class EventController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'description' => 'nullable|string',
+            'logo' => 'nullable|image|max:2048',
         ]);
 
         $validated['is_active'] = $request->has('is_active');
+
+        if ($request->hasFile('logo')) {
+            $validated['logo'] = $request->file('logo')->store('event_logos', 'public');
+        }
 
         \App\Models\Event::create($validated);
 
@@ -76,9 +81,17 @@ class EventController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'description' => 'nullable|string',
+            'logo' => 'nullable|image|max:2048',
         ]);
 
         $validated['is_active'] = $request->has('is_active');
+
+        if ($request->hasFile('logo')) {
+            if ($event->logo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($event->logo);
+            }
+            $validated['logo'] = $request->file('logo')->store('event_logos', 'public');
+        }
 
         $event->update($validated);
 
@@ -91,6 +104,9 @@ class EventController extends Controller
      */
     public function destroy(\App\Models\Event $event)
     {
+        if ($event->logo) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($event->logo);
+        }
         $event->delete();
         return redirect()->route('events.index')
             ->with('success', 'Evento eliminado exitosamente.');

@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="py-12">
+    <div>
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
             <!-- Search and Actions -->
@@ -46,7 +46,7 @@
                     <div
                         class="card bg-base-100 shadow-sm hover:shadow-md transition-all duration-200 border border-base-200 group h-full">
                         <!-- Mini Preview Area -->
-                        <figure class="h-32 bg-base-200 relative overflow-hidden group shrink-0">
+                        <figure class="h-20 bg-base-200 relative overflow-hidden group shrink-0">
                             <iframe
                                 src="{{ route('document-configurations.stream-pdf', $config) }}#toolbar=0&navpanes=0&scrollbar=0&view=Fit"
                                 class="w-full h-full border-none pointer-events-none transform scale-100 origin-top-left"
@@ -63,22 +63,24 @@
                             </div>
                         </figure>
 
-                        <div class="card-body p-4 flex flex-col">
-                            <div class="flex justify-between items-start gap-2">
+                        <div class="card-body p-2 flex flex-col">
+                            <div class="flex justify-between items-start gap-0">
                                 <div class="flex-1 min-w-0">
                                     <div class="tooltip tooltip-bottom before:text-xs before:max-w-[200px] before:content-[attr(data-tip)]"
                                         data-tip="{{ $config->document_name }}">
-                                        <h2 class="font-bold text-base truncate text-left">
+                                        <h2 class="font-bold text-xs truncate text-left leading-none">
                                             {{ $config->document_name }}
                                         </h2>
                                     </div>
-                                    <p class="text-xs text-gray-500 uppercase tracking-wide font-semibold">
+                                    <p
+                                        class="text-[10px] text-gray-500 uppercase tracking-wide font-semibold leading-none mt-0">
                                         {{ $config->document_type }}
                                     </p>
                                     @if($config->event)
-                                        <div class="mt-1">
-                                            <span class="badge badge-primary badge-outline badge-xs gap-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                        <div class="mt-0">
+                                            <span
+                                                class="badge badge-primary badge-outline badge-xs gap-1 h-3.5 px-1 text-[9px]">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -86,7 +88,7 @@
                                                 {{ $config->event->key }}
                                             </span>
                                             <span
-                                                class="text-[10px] text-gray-400 ml-1 truncate max-w-[150px] inline-block align-bottom"
+                                                class="text-[9px] text-gray-400 ml-1 truncate max-w-[150px] inline-block align-bottom leading-none"
                                                 title="{{ $config->event->name }}">
                                                 {{ $config->event->name }}
                                             </span>
@@ -95,8 +97,8 @@
                                 </div>
                                 <div class="dropdown dropdown-end">
                                     <label tabindex="0"
-                                        class="btn btn-ghost btn-circle btn-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                        class="btn btn-ghost btn-circle btn-xs opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 min-h-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -118,14 +120,15 @@
                                 </div>
                             </div>
 
-                            <p class="text-xs text-gray-600 line-clamp-2 mt-2 h-8" title="{{ $config->description }}">
+                            <p class="text-[9px] text-gray-600 line-clamp-1 mt-0 h-auto leading-none"
+                                title="{{ $config->description }}">
                                 {{ $config->description ?: 'Sin descripción' }}
                             </p>
 
-                            <div class="card-actions justify-between items-center border-t border-base-100 pt-3 mt-auto">
-                                <div class="flex items-center text-xs text-gray-400">
+                            <div class="card-actions justify-between items-center border-t border-base-100 pt-1 mt-auto">
+                                <div class="flex items-center text-[10px] text-gray-400">
                                     <div
-                                        class="badge {{ $config->is_active ? 'badge-success' : 'badge-ghost' }} badge-xs gap-1 mr-2">
+                                        class="badge {{ $config->is_active ? 'badge-success' : 'badge-ghost' }} badge-xs gap-1 mr-2 h-1.5 w-1.5 p-0">
                                     </div>
                                     {{ $config->page_size }} ({{ $config->page_orientation }})
                                 </div>

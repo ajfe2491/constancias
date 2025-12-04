@@ -8,9 +8,28 @@
     <div class="py-12">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-base-100 overflow-hidden shadow-sm sm:rounded-lg border border-base-200 p-6">
-                <form action="{{ route('events.update', $event) }}" method="POST" class="space-y-6">
+                <form action="{{ route('events.update', $event) }}" method="POST" class="space-y-6" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
+
+                    <!-- Logo -->
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text font-bold">Logotipo del Evento</span>
+                        </label>
+                        @if($event->logo)
+                        <div class="mb-2">
+                            <img src="{{ Storage::url($event->logo) }}" alt="Logo actual" class="h-16 w-auto object-contain border rounded p-1">
+                        </div>
+                        @endif
+                        <input type="file" name="logo" class="file-input file-input-bordered w-full" accept="image/*" />
+                        <label class="label">
+                            <span class="label-text-alt text-gray-500">Opcional. Se mostrará en los correos electrónicos y en la vista del evento.</span>
+                        </label>
+                        @error('logo')
+                            <span class="text-error text-xs mt-1">{{ $message }}</span>
+                        @enderror
+                    </div>
 
                     <!-- Nombre -->
                     <div class="form-control w-full">

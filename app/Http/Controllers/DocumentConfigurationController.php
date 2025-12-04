@@ -104,6 +104,7 @@ class DocumentConfigurationController extends Controller
             'folio_color' => 'nullable|string',
             'folio_alignment' => 'nullable|in:L,C,R',
             'background_fit' => 'boolean',
+            'email_message' => 'nullable|string',
         ]);
 
         $data = $request->except('background_image', 'text_elements');

@@ -332,7 +332,7 @@
                                         (mm)</span></label>
                                 <input type="number" name="background_x"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="backgroundX" :disabled="backgroundFit"
+                                    x-model="backgroundX" :readonly="backgroundFit" :class="{'bg-base-200': backgroundFit}"
                                     @change="refreshPreview()" />
                             </div>
                             <div class="form-control">
@@ -340,7 +340,7 @@
                                         (mm)</span></label>
                                 <input type="number" name="background_y"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="backgroundY" :disabled="backgroundFit"
+                                    x-model="backgroundY" :readonly="backgroundFit" :class="{'bg-base-200': backgroundFit}"
                                     @change="refreshPreview()" />
                             </div>
                             <div class="form-control">
@@ -348,7 +348,7 @@
                                         (mm)</span></label>
                                 <input type="number" name="background_width"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="backgroundWidth" :disabled="backgroundFit"
+                                    x-model="backgroundWidth" :readonly="backgroundFit" :class="{'bg-base-200': backgroundFit}"
                                     @change="refreshPreview()" />
                             </div>
                             <div class="form-control">
@@ -356,7 +356,7 @@
                                         (mm)</span></label>
                                 <input type="number" name="background_height"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="backgroundHeight" :disabled="backgroundFit"
+                                    x-model="backgroundHeight" :readonly="backgroundFit" :class="{'bg-base-200': backgroundFit}"
                                     @change="refreshPreview()" />
                             </div>
                         </div>
@@ -383,6 +383,17 @@
                                         class="toggle toggle-success toggle-xs focus:outline-none" {{ old('is_active', $documentConfiguration->is_active) ? 'checked' : '' }} />
                                 </label>
                             </div>
+                        </div>
+
+                        <div class="form-control w-full">
+                            <label class="label py-0 mb-1"><span
+                                    class="label-text text-[10px] font-semibold">Mensaje de Correo (Opcional)</span></label>
+                            <textarea name="email_message"
+                                class="textarea textarea-bordered h-24 text-[10px] leading-tight"
+                                placeholder="Mensaje personalizado para el correo electrónico...">{{ old('email_message', $documentConfiguration->email_message) }}</textarea>
+                            <label class="label py-0">
+                                <span class="label-text-alt text-[9px] text-gray-500">Este mensaje aparecerá en el cuerpo del correo enviado a los participantes.</span>
+                            </label>
                         </div>
 
                         <!-- QR Configuration Fields -->
@@ -486,7 +497,7 @@
                                 <label class="label py-0"><span
                                         class="label-text text-[9px] opacity-70">Alineación</span></label>
                                 <select name="folio_alignment"
-                                    class="select select-bordered select-xs w-full text-[10px] px-1 h-7 min-h-0"
+                                    class="select select-bordered select-sm w-full text-xs"
                                     @change="refreshPreview()">
                                     <option value="L" {{ (old('folio_alignment', $documentConfiguration->folio_alignment) == 'L') ? 'selected' : '' }}>Izquierda
                                     </option>
@@ -609,7 +620,7 @@
                                             <label class="label py-0"><span
                                                     class="label-text text-[9px] opacity-70">Font</span></label>
                                             <select x-model="element.font_family"
-                                                class="select select-bordered select-xs w-full text-[10px] px-1 h-7 min-h-0"
+                                                class="select select-bordered select-sm w-full text-xs"
                                                 @change="refreshPreview()">
                                                 <option value="Arial">Arial</option>
                                                 <option value="Times">Times</option>
@@ -792,6 +803,17 @@
                         // Explicitly add text_elements and sample_data as JSON
                         formData.set('text_elements', JSON.stringify(this.textElements));
                         formData.set('sample_data', JSON.stringify(this.sampleData));
+
+                        // Explicitly set background dimensions from Alpine state to ensure they are up-to-date
+                        // even if the DOM inputs haven't updated yet or are readonly
+                        if (this.backgroundFit) {
+                            formData.set('background_x', this.backgroundX);
+                            formData.set('background_y', this.backgroundY);
+                            formData.set('background_width', this.backgroundWidth);
+                            formData.set('background_height', this.backgroundHeight);
+                            formData.set('background_fit', '1');
+                        }
+
                         formData.delete('_method');
 
                         try {
