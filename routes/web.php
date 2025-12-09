@@ -23,6 +23,7 @@ Route::middleware('auth')->group(function () {
     Route::get('document-configurations/{document_configuration}/stream-pdf', [\App\Http\Controllers\DocumentConfigurationController::class, 'streamPdf'])->name('document-configurations.stream-pdf');
     Route::get('document-configurations/{document_configuration}/background-image', [\App\Http\Controllers\DocumentConfigurationController::class, 'backgroundImage'])->name('document-configurations.background-image');
     Route::resource('document-configurations', \App\Http\Controllers\DocumentConfigurationController::class);
+    Route::get('/certificate-sending/{history}/status', [CertificateSendingController::class, 'status'])->name('certificate-sending.status');
     Route::resource('certificate-sending', CertificateSendingController::class)->only(['index', 'create', 'store', 'show']);
     Route::get('/certificate-sending/{document_configuration}/template', [CertificateSendingController::class, 'downloadTemplate'])->name('certificate-sending.template');
     Route::resource('events', \App\Http\Controllers\EventController::class);
