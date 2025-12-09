@@ -34,7 +34,20 @@ class CertificateSendingController extends Controller
             ->latest()
             ->get();
 
-        return view('certificate_sending.create', compact('configurations'));
+        $configurationMeta = $configurations->map(function ($config) {
+            return [
+                'id' => $config->id,
+                'name' => $config->document_name,
+                'event' => $config->event?->name,
+                'placeholders' => $this->extractPlaceholders($config),
+                'sample_data' => $config->sample_data ?? [],
+            ];
+        });
+
+        return view('certificate_sending.create', [
+            'configurations' => $configurations,
+            'configurationMeta' => $configurationMeta,
+        ]);
     }
 
     /**
@@ -42,14 +55,53 @@ class CertificateSendingController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $mode = $request->input('mode', 'bulk');
+
+        $baseRules = [
             'document_configuration_id' => 'required|exists:document_configurations,id',
-            'csv_file' => 'required|file|mimes:csv,txt|max:2048',
-        ]);
+        ];
+
+        if ($mode === 'single') {
+            $baseRules['email'] = 'required|email';
+        } else {
+            $baseRules['csv_file'] = 'required|file|mimes:csv,txt|max:2048';
+        }
+
+        $request->validate($baseRules);
 
         $config = DocumentConfiguration::findOrFail($request->document_configuration_id);
 
-        // Store CSV
+        if ($mode === 'single') {
+            $placeholders = collect($this->extractPlaceholders($config))
+                ->filter(fn ($field) => $field !== 'email');
+
+            $dynamicRules = $placeholders
+                ->mapWithKeys(fn ($field) => ["data.$field" => 'required|string'])
+                ->toArray();
+
+            $request->validate($dynamicRules);
+
+            $recipientData = array_merge(
+                $request->input('data', []),
+                ['email' => $request->input('email')]
+            );
+
+            $history = ConstancyGeneralHistory::create([
+                'total_registros' => 1,
+                'procesados_exitosos' => 0,
+                'procesados_fallidos' => 0,
+                'qrs_generados' => 0,
+                'errores' => [],
+                'user_id' => Auth::id(),
+                'csv_file_path' => null,
+            ]);
+
+            SendCertificateJob::dispatch($config, $recipientData, $history->id);
+
+            return redirect()->route('certificate-sending.show', $history)
+                ->with('success', 'Envío individual iniciado. Actualiza esta página para ver el progreso.');
+        }
+
         $path = $request->file('csv_file')->store('csv_uploads', 'public');
 
         // Parse CSV
@@ -73,7 +125,6 @@ class CertificateSendingController extends Controller
             return back()->withErrors(['csv_file' => 'El archivo CSV está vacío o no tiene el formato correcto.']);
         }
 
-        // Create History Record
         $history = ConstancyGeneralHistory::create([
             'total_registros' => count($rows),
             'procesados_exitosos' => 0,
@@ -84,9 +135,7 @@ class CertificateSendingController extends Controller
             'csv_file_path' => $path,
         ]);
 
-        // Dispatch Jobs
         foreach ($rows as $row) {
-            // Ensure email exists
             if (empty($row['email'])) {
                 $history->increment('procesados_fallidos');
                 $errors = $history->errores ?? [];
@@ -112,23 +161,7 @@ class CertificateSendingController extends Controller
 
     public function downloadTemplate(DocumentConfiguration $documentConfiguration)
     {
-        $headers = ['email']; // Email is always required
-
-        // Extract placeholders from text elements
-        if ($documentConfiguration->text_elements) {
-            foreach ($documentConfiguration->text_elements as $element) {
-                if (isset($element['text'])) {
-                    // Match {variable} pattern
-                    if (preg_match_all('/\{(\w+)\}/', $element['text'], $matches)) {
-                        foreach ($matches[1] as $match) {
-                            if (!in_array($match, $headers)) {
-                                $headers[] = $match;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        $headers = $this->extractPlaceholders($documentConfiguration);
 
         // Also check for folio if it's not auto-generated (though usually it is)
         // If the user wants to override folio from CSV, they can add 'folio' column.
@@ -151,5 +184,47 @@ class CertificateSendingController extends Controller
             "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
             "Expires" => "0"
         ]);
+    }
+
+    public function status(ConstancyGeneralHistory $history)
+    {
+        $history->refresh();
+
+        return response()->json([
+            'id' => $history->id,
+            'total' => $history->total_registros,
+            'success' => $history->procesados_exitosos,
+            'failed' => $history->procesados_fallidos,
+            'errors' => $history->errores ?? [],
+            'completed' => ($history->procesados_exitosos + $history->procesados_fallidos) >= $history->total_registros,
+            'updated_at' => $history->updated_at?->toDateTimeString(),
+        ]);
+    }
+
+    private function extractPlaceholders(DocumentConfiguration $documentConfiguration): array
+    {
+        $headers = ['email'];
+
+        if ($documentConfiguration->text_elements) {
+            foreach ($documentConfiguration->text_elements as $element) {
+                if (isset($element['text']) && preg_match_all('/\{(\w+)\}/', $element['text'], $matches)) {
+                    foreach ($matches[1] as $match) {
+                        if (!in_array($match, $headers)) {
+                            $headers[] = $match;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!empty($documentConfiguration->sample_data)) {
+            foreach (array_keys($documentConfiguration->sample_data) as $key) {
+                if (!in_array($key, $headers)) {
+                    $headers[] = $key;
+                }
+            }
+        }
+
+        return $headers;
     }
 }
