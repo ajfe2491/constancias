@@ -148,6 +148,7 @@
                 errors: initial.errors ?? [],
                 updatedAt: initial.updated_at,
                 statusUrl: '{{ route('certificate-sending.status', ['history' => $history->id]) }}',
+                statusUrl: '{{ route('certificate-sending.status', $history) }}',
                 poller: null,
                 get processed() {
                     return (this.success || 0) + (this.failed || 0);
