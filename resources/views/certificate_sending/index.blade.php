@@ -46,7 +46,12 @@
                                 <td class="text-success font-bold">{{ $record->procesados_exitosos }}</td>
                                 <td class="text-error font-bold">{{ $record->procesados_fallidos }}</td>
                                 <td>
-                                    @if($record->procesados_exitosos + $record->procesados_fallidos >= $record->total_registros)
+                                    @php
+                                        $processed = $record->procesados_exitosos + $record->procesados_fallidos;
+                                        $percent = $record->total_registros > 0 ? round(($processed / $record->total_registros) * 100) : 0;
+                                    @endphp
+
+                                    @if($processed >= $record->total_registros)
                                         <div class="badge badge-success gap-1">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
                                                 viewBox="0 0 24 24" stroke="currentColor">
@@ -65,6 +70,12 @@
                                             Procesando
                                         </div>
                                     @endif
+
+                                    <div class="mt-2 w-44">
+                                        <progress class="progress progress-primary" value="{{ $processed }}"
+                                            max="{{ $record->total_registros }}"></progress>
+                                        <div class="text-xs opacity-70 mt-1">{{ $percent }}% completado</div>
+                                    </div>
                                 </td>
                                 <td>
                                     <a href="{{ route('certificate-sending.show', $record->id) }}"
