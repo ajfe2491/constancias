@@ -10,9 +10,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified', 'permission:ver dashboard'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -24,9 +24,15 @@ Route::middleware('auth')->group(function () {
     Route::get('document-configurations/{document_configuration}/background-image', [\App\Http\Controllers\DocumentConfigurationController::class, 'backgroundImage'])->name('document-configurations.background-image');
     Route::resource('document-configurations', \App\Http\Controllers\DocumentConfigurationController::class);
     Route::get('/certificate-sending/{history}/status', [CertificateSendingController::class, 'status'])->name('certificate-sending.status');
-    Route::resource('certificate-sending', CertificateSendingController::class)->only(['index', 'create', 'store', 'show']);
+    Route::resource('certificate-sending', CertificateSendingController::class)
+        ->only(['index', 'create', 'store', 'show'])
+        ->parameters(['certificate-sending' => 'history']);
     Route::get('/certificate-sending/{document_configuration}/template', [CertificateSendingController::class, 'downloadTemplate'])->name('certificate-sending.template');
     Route::resource('events', \App\Http\Controllers\EventController::class);
+
+    // User & Role Management
+    Route::resource('users', \App\Http\Controllers\UserController::class)->middleware('permission:gestionar usuarios');
+    Route::resource('roles', \App\Http\Controllers\RoleController::class)->middleware('permission:gestionar roles');
 });
 
 Route::get('/test-email', function () {

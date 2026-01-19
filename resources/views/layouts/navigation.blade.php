@@ -35,75 +35,114 @@
 
     <!-- Menu Items -->
     <ul class="space-y-1 flex-1">
-        <li class="menu-title px-2 uppercase text-xs font-bold opacity-50 tracking-wider mb-2 transition-opacity duration-300"
-            :class="sidebarOpen ? 'opacity-50' : 'opacity-0 hidden'">
-            Principal
-        </li>
-        <li>
-            <a href="{{ route('dashboard') }}"
-                class="flex items-center gap-4 text-sm {{ request()->routeIs('dashboard') ? 'active font-medium' : '' }}"
-                :class="sidebarOpen ? '' : 'justify-center'">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                <span :class="sidebarOpen ? 'block' : 'hidden'">Dashboard</span>
-            </a>
-        </li>
+        @can('ver dashboard')
+            <li class="menu-title px-2 uppercase text-xs font-bold opacity-50 tracking-wider mb-2 transition-opacity duration-300"
+                :class="sidebarOpen ? 'opacity-50' : 'opacity-0 hidden'">
+                Principal
+            </li>
+            <li>
+                <a href="{{ route('dashboard') }}"
+                    class="flex items-center gap-4 text-sm {{ request()->routeIs('dashboard') ? 'active font-medium' : '' }}"
+                    :class="sidebarOpen ? '' : 'justify-center'">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    <span :class="sidebarOpen ? 'block' : 'hidden'">Dashboard</span>
+                </a>
+            </li>
+        @endcan
 
         <li class="menu-title px-2 uppercase text-xs font-bold opacity-50 tracking-wider mt-6 mb-2 transition-opacity duration-300"
             :class="sidebarOpen ? 'opacity-50' : 'opacity-0 hidden'">
             Gestión
         </li>
-        <li>
-            <a href="{{ route('events.index') }}"
-                class="flex items-center gap-4 text-sm {{ request()->routeIs('events.*') ? 'active font-medium' : '' }}"
-                :class="sidebarOpen ? '' : 'justify-center'">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span :class="sidebarOpen ? 'block' : 'hidden'">Eventos</span>
-            </a>
-        </li>
-        <li>
-            <a href="{{ route('certificate-sending.index') }}"
-                class="flex items-center gap-4 text-sm {{ request()->routeIs('certificate-sending.*') ? 'active font-medium' : '' }}"
-                :class="sidebarOpen ? '' : 'justify-center'">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <span :class="sidebarOpen ? 'block' : 'hidden'">Envíos</span>
-            </a>
-        </li>
-        <li>
-            <a href="#" class="flex items-center gap-4 text-sm" :class="sidebarOpen ? '' : 'justify-center'">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <span :class="sidebarOpen ? 'block' : 'hidden'">Participantes</span>
-            </a>
-        </li>
-        <li>
-            <a href="{{ route('document-configurations.index') }}"
-                class="flex items-center gap-4 text-sm {{ request()->routeIs('document-configurations.*') ? 'active font-medium' : '' }}"
-                :class="sidebarOpen ? '' : 'justify-center'">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span :class="sidebarOpen ? 'block' : 'hidden'">Configuración</span>
-            </a>
-        </li>
+        @can('gestionar eventos')
+            <li>
+                <a href="{{ route('events.index') }}"
+                    class="flex items-center gap-4 text-sm {{ request()->routeIs('events.*') ? 'active font-medium' : '' }}"
+                    :class="sidebarOpen ? '' : 'justify-center'">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span :class="sidebarOpen ? 'block' : 'hidden'">Eventos</span>
+                </a>
+            </li>
+        @endcan
+
+        @can('enviar constancias')
+            <li>
+                <a href="{{ route('certificate-sending.index') }}"
+                    class="flex items-center gap-4 text-sm {{ request()->routeIs('certificate-sending.*') ? 'active font-medium' : '' }}"
+                    :class="sidebarOpen ? '' : 'justify-center'">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span :class="sidebarOpen ? 'block' : 'hidden'">Envíos</span>
+                </a>
+            </li>
+        @endcan
+
+
+
+        @can('gestionar plantillas')
+            <li>
+                <a href="{{ route('document-configurations.index') }}"
+                    class="flex items-center gap-4 text-sm {{ request()->routeIs('document-configurations.*') ? 'active font-medium' : '' }}"
+                    :class="sidebarOpen ? '' : 'justify-center'">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span :class="sidebarOpen ? 'block' : 'hidden'">Configuración</span>
+                </a>
+            </li>
+        @endcan
+
+        @if(auth()->user()->can('gestionar usuarios') || auth()->user()->can('gestionar roles'))
+            <li class="menu-title px-2 uppercase text-xs font-bold opacity-50 tracking-wider mt-6 mb-2 transition-opacity duration-300"
+                :class="sidebarOpen ? 'opacity-50' : 'opacity-0 hidden'">
+                Seguridad
+            </li>
+
+            @can('gestionar usuarios')
+                <li>
+                    <a href="{{ route('users.index') }}"
+                        class="flex items-center gap-4 text-sm {{ request()->routeIs('users.*') ? 'active font-medium' : '' }}"
+                        :class="sidebarOpen ? '' : 'justify-center'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <span :class="sidebarOpen ? 'block' : 'hidden'">Usuarios</span>
+                    </a>
+                </li>
+            @endcan
+
+            @can('gestionar roles')
+                <li>
+                    <a href="{{ route('roles.index') }}"
+                        class="flex items-center gap-4 text-sm {{ request()->routeIs('roles.*') ? 'active font-medium' : '' }}"
+                        :class="sidebarOpen ? '' : 'justify-center'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-70 flex-shrink-0" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        <span :class="sidebarOpen ? 'block' : 'hidden'">Roles</span>
+                    </a>
+                </li>
+            @endcan
+        @endif
     </ul>
 
     <!-- Footer Info -->
