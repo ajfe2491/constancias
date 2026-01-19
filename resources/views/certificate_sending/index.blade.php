@@ -22,7 +22,7 @@
     <div class="card bg-base-100 shadow-xl">
         <div class="card-body p-0">
             <div class="overflow-x-auto">
-                <table class="table w-full">
+                <table class="table w-full table-compact">
                     <thead>
                         <tr>
                             <th>Fecha</th>

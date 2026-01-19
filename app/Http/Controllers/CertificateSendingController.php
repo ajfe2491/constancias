@@ -73,10 +73,10 @@ class CertificateSendingController extends Controller
 
         if ($mode === 'single') {
             $placeholders = collect($this->extractPlaceholders($config))
-                ->filter(fn ($field) => $field !== 'email');
+                ->filter(fn($field) => $field !== 'email');
 
             $dynamicRules = $placeholders
-                ->mapWithKeys(fn ($field) => ["data.$field" => 'required|string'])
+                ->mapWithKeys(fn($field) => ["data.$field" => 'required|string'])
                 ->toArray();
 
             $request->validate($dynamicRules);
@@ -94,6 +94,7 @@ class CertificateSendingController extends Controller
                 'errores' => [],
                 'user_id' => Auth::id(),
                 'csv_file_path' => null,
+                'document_configuration_id' => $config->id,
             ]);
 
             SendCertificateJob::dispatch($config, $recipientData, $history->id);
@@ -133,6 +134,7 @@ class CertificateSendingController extends Controller
             'errores' => [],
             'user_id' => Auth::id(),
             'csv_file_path' => $path,
+            'document_configuration_id' => $config->id,
         ]);
 
         foreach ($rows as $row) {
@@ -156,6 +158,7 @@ class CertificateSendingController extends Controller
      */
     public function show(ConstancyGeneralHistory $history)
     {
+        $history->load('documentConfiguration.event');
         return view('certificate_sending.show', compact('history'));
     }
 
