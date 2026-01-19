@@ -49,32 +49,40 @@
                                     @php
                                         $processed = $record->procesados_exitosos + $record->procesados_fallidos;
                                         $percent = $record->total_registros > 0 ? round(($processed / $record->total_registros) * 100) : 0;
+                                        $isComplete = $processed >= $record->total_registros;
                                     @endphp
 
-                                    @if($processed >= $record->total_registros)
-                                        <div class="badge badge-success gap-1">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
-                                                viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            Completado
+                                    <div class="flex items-center gap-3">
+                                        <div class="radial-progress {{ $isComplete ? 'text-success' : 'text-primary' }} text-xs font-bold"
+                                            style="--value:{{ $percent }}; --size:3rem; --thickness: 4px;"
+                                            role="progressbar">
+                                            {{ $percent }}%
                                         </div>
-                                    @else
-                                        <div class="badge badge-warning gap-1">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 animate-spin" fill="none"
-                                                viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                            </svg>
-                                            Procesando
-                                        </div>
-                                    @endif
 
-                                    <div class="mt-2 w-44">
-                                        <progress class="progress progress-primary" value="{{ $processed }}"
-                                            max="{{ $record->total_registros }}"></progress>
-                                        <div class="text-xs opacity-70 mt-1">{{ $percent }}% completado</div>
+                                        <div class="flex flex-col">
+                                            @if($isComplete)
+                                                <div class="badge badge-sm badge-success badge-outline gap-1">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none"
+                                                        viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    Listo
+                                                </div>
+                                            @else
+                                                <div class="badge badge-sm badge-warning badge-outline gap-1">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 animate-spin"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                    </svg>
+                                                    Proc.
+                                                </div>
+                                            @endif
+                                            <span class="text-[10px] opacity-60 mt-1">
+                                                {{ $processed }} / {{ $record->total_registros }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td>
