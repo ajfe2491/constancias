@@ -19,6 +19,7 @@ class ConstancyGeneralHistory extends Model
         'errores',
         'user_id',
         'csv_file_path',
+        'document_configuration_id',
     ];
 
     protected $casts = [
@@ -28,5 +29,10 @@ class ConstancyGeneralHistory extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function documentConfiguration()
+    {
+        return $this->belongsTo(DocumentConfiguration::class);
     }
 }
