@@ -41,7 +41,16 @@ RUN useradd -G www-data,root -u $uid -d /home/$user $user
 RUN mkdir -p /home/$user/.composer && \
     chown -R $user:$user /home/$user
 
-WORKDIR /var/www/html
+# Copy existing application directory contents
+COPY . /var/www/html
+
+# Install dependencies using Composer
+RUN composer install --no-dev --optimize-autoloader
+
+# Set permissions
+RUN chown -R $user:$user /var/www/html \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
 
 USER $user
 

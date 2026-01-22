@@ -1,0 +1,76 @@
+services:
+  app:
+    image: ajfe/constancias:latest
+    container_name: constancias-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - csv_storage:/var/www/html/storage/app/public
+    networks:
+      - constancias-net
+    depends_on:
+      - db
+      - redis
+
+  queue:
+    image: ajfe/constancias:latest
+    container_name: constancias-queue
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - csv_storage:/var/www/html/storage/app/public
+    command: php artisan queue:work --tries=3 --timeout=90
+    networks:
+      - constancias-net
+    depends_on:
+      - app
+      - db
+      - redis
+
+  web:
+    image: ajfe/constancias-nginx:latest
+    container_name: constancias-web
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8180}:80"
+    volumes:
+      - csv_storage:/var/www/html/storage/app/public
+    networks:
+      - constancias-net
+    depends_on:
+      - app
+
+  redis:
+    image: redis:7-alpine
+    container_name: constancias-redis
+    restart: unless-stopped
+    networks:
+      - constancias-net
+
+  db:
+    image: mysql:8.0
+    container_name: constancias-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: constancias
+      MYSQL_USER: constancias
+      MYSQL_PASSWORD: constancias
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "${DB_PORT:-3309}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - constancias-net
+
+volumes:
+  db_data:
+  csv_storage:
+
+
+networks:
+  constancias-net:
+    driver: bridge

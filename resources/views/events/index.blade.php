@@ -38,7 +38,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
                     </div>
-                    <span class="font-bold text-sm group-hover:text-primary transition-colors">Nuevo Evento</span>
+                    <span class="font-bold text-base group-hover:text-primary transition-colors">Nuevo Evento</span>
                 </button>
 
                 @foreach($events as $event)
@@ -47,26 +47,25 @@
                         <div class="card-body p-2 flex flex-col">
                             <div class="flex justify-between items-start gap-1">
                                 <div class="flex-1 min-w-0">
-                                    <div class="tooltip tooltip-bottom before:text-xs before:max-w-[200px] before:content-[attr(data-tip)]"
+                                    <div class="tooltip tooltip-bottom before:text-sm before:max-w-[240px] before:content-[attr(data-tip)]"
                                         data-tip="{{ $event->name }}">
-                                        <h2 class="font-bold text-xs truncate text-left leading-none">
+                                        <h2 class="font-bold text-base truncate text-left leading-tight">
                                             <a href="{{ route('events.show', $event) }}"
                                                 class="hover:text-primary transition-colors">
                                                 {{ $event->name }}
                                             </a>
                                         </h2>
                                     </div>
-                                    <p
-                                        class="text-[9px] text-gray-500 uppercase tracking-wide font-semibold leading-none mt-0.5">
+                                    <p class="text-sm text-gray-500 uppercase tracking-wide font-semibold leading-tight mt-1">
                                         <span
-                                            class="font-mono bg-base-200 px-1 rounded text-base-content/70 mr-1">{{ $event->key }}</span>
+                                            class="font-mono bg-base-200 px-1.5 rounded text-base-content/70 mr-1">{{ $event->key }}</span>
                                         {{ $event->type }}
                                     </p>
 
                                     @if($event->documentConfigurations->count() > 0)
-                                        <div class="mt-0.5 flex flex-wrap gap-0.5">
+                                        <div class="mt-1 flex flex-wrap gap-1">
                                             @foreach($event->documentConfigurations->groupBy('document_type') as $type => $configs)
-                                                <div class="badge badge-ghost badge-xs text-[9px] gap-1 h-3.5 px-1">
+                                                <div class="badge badge-ghost badge-sm text-sm gap-1 px-2">
                                                     <span class="font-bold">{{ $configs->count() }}</span> {{ ucfirst($type) }}
                                                 </div>
                                             @endforeach
@@ -97,15 +96,15 @@
                                 </div>
                             </div>
 
-                            <p class="text-[9px] text-gray-600 line-clamp-1 mt-0.5 h-auto leading-none"
+                            <p class="text-sm text-gray-600 line-clamp-2 mt-1 h-auto leading-tight"
                                 title="{{ $event->description }}">
                                 {{ $event->description ?: 'Sin descripción' }}
                             </p>
 
-                            <div class="flex items-center justify-between mt-1 pt-1 border-t border-base-100 mt-auto">
-                                <div class="flex items-center gap-2 text-[9px] text-gray-500">
+                            <div class="flex items-center justify-between mt-2 pt-2 border-t border-base-100 mt-auto">
+                                <div class="flex items-center gap-2 text-sm text-gray-500">
                                     <div
-                                        class="badge {{ $event->is_active ? 'badge-success' : 'badge-ghost' }} badge-xs gap-1 h-1.5 w-1.5 p-0">
+                                        class="badge {{ $event->is_active ? 'badge-success' : 'badge-ghost' }} badge-sm gap-1 h-2 w-2 p-0">
                                     </div>
                                     <span>{{ $event->start_date ? $event->start_date->format('d M') : 'N/A' }}</span>
                                     @if($event->end_date)
@@ -113,7 +112,7 @@
                                     @endif
                                 </div>
                                 <a href="{{ route('events.show', $event) }}"
-                                    class="btn btn-ghost btn-xs text-primary h-5 min-h-0 text-[9px]">Ver</a>
+                                    class="btn btn-ghost btn-sm text-primary min-h-0">Ver</a>
                             </div>
                         </div>
                     </div>

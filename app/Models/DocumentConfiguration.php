@@ -91,13 +91,11 @@ class DocumentConfiguration extends Model
     ];
 
     /**
-     * Generar PDF usando la configuración
+     * Formatea un folio con prefijos configurados.
      */
-    public function generatePDF($data = [])
+    public function formatFolio($folioNumber): string
     {
-        // Folio Logic
-        $folioNumber = $data['folio'] ?? $this->folio_start ?? 1;
-        $formattedFolio = str_pad($folioNumber, $this->folio_digits ?? 4, '0', STR_PAD_LEFT);
+        $formattedFolio = str_pad((string) $folioNumber, $this->folio_digits ?? 4, '0', STR_PAD_LEFT);
 
         if ($this->folio_year_prefix) {
             $formattedFolio = date('Y') . '-' . $formattedFolio;
@@ -107,7 +105,17 @@ class DocumentConfiguration extends Model
             $formattedFolio = $this->event->key . '-' . $formattedFolio;
         }
 
-        $data['folio'] = $formattedFolio;
+        return $formattedFolio;
+    }
+
+    /**
+     * Generar PDF usando la configuración
+     */
+    public function generatePDF($data = [])
+    {
+        // Folio Logic
+        $folioNumber = $data['folio'] ?? $this->folio_start ?? 1;
+        $data['folio'] = $this->formatFolio($folioNumber);
 
         // Datos del sistema (Hardcoded por ahora, idealmente vendrían de una configuración)
         $systemData = [

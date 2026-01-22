@@ -13,9 +13,7 @@
                 class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary p-8 text-primary-content shadow-xl">
                 <div class="relative z-10">
                     <h2 class="text-3xl font-bold mb-2">¡Hola, {{ Auth::user()->name }}!</h2>
-                    <p class="opacity-90 text-lg max-w-xl">Bienvenido al sistema de gestión de constancias. Aquí tienes
-                        un
-                        resumen de la actividad reciente.</p>
+                    <p class="opacity-90 text-lg max-w-xl">Bienvenido al <strong>SIICE</strong> (Sistema Integral de Identificación y Certificación Electrónica). Aquí tienes un resumen de la actividad reciente.</p>
                     <div class="mt-6 flex gap-3">
                         @can('enviar constancias')
                             <a href="{{ route('certificate-sending.create') }}"

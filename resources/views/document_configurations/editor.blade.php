@@ -708,8 +708,24 @@
                     init() {
                         this.$nextTick(() => {
                             this.refreshPreview(true);
+
+                            const form = document.getElementById('config-form');
+                            if (form) {
+                                form.addEventListener('input', () => {
+                                    this.schedulePreview();
+                                    this.scheduleAutoSave();
+                                });
+                                form.addEventListener('change', () => {
+                                    this.schedulePreview(true);
+                                    this.scheduleAutoSave();
+                                });
+                            }
                         });
                     },
+
+                    autosaveTimeout: null,
+                    previewTimeout: null,
+                    autosaving: false,
 
                     showNotification(message, type = 'info') {
                         const id = Date.now();
@@ -719,6 +735,67 @@
                         }, 3000);
                     },
 
+                    scheduleAutoSave() {
+                        if (this.autosaveTimeout) {
+                            clearTimeout(this.autosaveTimeout);
+                        }
+                        this.autosaveTimeout = setTimeout(() => this.autoSave(), 900);
+                    },
+
+                    schedulePreview(force = false) {
+                        if (!this.enableLivePreview && !force) return;
+                        if (this.previewTimeout) {
+                            clearTimeout(this.previewTimeout);
+                        }
+                        this.previewTimeout = setTimeout(() => this.refreshPreview(force), 300);
+                    },
+
+                    buildFormData() {
+                        const form = document.getElementById('config-form');
+                        const formData = new FormData(form);
+
+                        formData.set('text_elements', JSON.stringify(this.textElements));
+                        formData.set('sample_data', JSON.stringify(this.sampleData));
+
+                        if (this.backgroundFit) {
+                            formData.set('background_x', this.backgroundX);
+                            formData.set('background_y', this.backgroundY);
+                            formData.set('background_width', this.backgroundWidth);
+                            formData.set('background_height', this.backgroundHeight);
+                            formData.set('background_fit', '1');
+                        }
+
+                        return formData;
+                    },
+
+                    async autoSave() {
+                        if (this.autosaving) return;
+                        this.autosaving = true;
+
+                        try {
+                            const formData = this.buildFormData();
+                            formData.set('_method', 'PUT');
+
+                            const response = await fetch(this.previewUrl.replace('/live-preview', ''), {
+                                method: 'POST',
+                                body: formData,
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            });
+
+                            if (!response.ok) {
+                                const data = await response.json().catch(() => null);
+                                const message = data?.message || 'No se pudo guardar automáticamente';
+                                this.showNotification(message, 'error');
+                            }
+                        } catch (error) {
+                            this.showNotification('Error de conexión al guardar', 'error');
+                        } finally {
+                            this.autosaving = false;
+                        }
+                    },
                     updateBackgroundDimensions() {
                         if (!this.backgroundFit) return;
 
@@ -797,12 +874,7 @@
                         this.loading = true;
 
                         // Gather form data manually to include dynamic text elements
-                        const form = document.getElementById('config-form');
-                        const formData = new FormData(form);
-
-                        // Explicitly add text_elements and sample_data as JSON
-                        formData.set('text_elements', JSON.stringify(this.textElements));
-                        formData.set('sample_data', JSON.stringify(this.sampleData));
+                        const formData = this.buildFormData();
 
                         // Explicitly set background dimensions from Alpine state to ensure they are up-to-date
                         // even if the DOM inputs haven't updated yet or are readonly

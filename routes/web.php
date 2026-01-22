@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CertificateVerificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\DocumentConfigurationController;
@@ -9,6 +10,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+Route::get('/verificar/{uuid}', [CertificateVerificationController::class, 'show'])
+    ->name('certificates.verify');
 
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', 'permission:ver dashboard'])

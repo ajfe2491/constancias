@@ -38,7 +38,7 @@
                 </div>
 
                 <div class="relative">
-                    <input id="password" :type="show ? 'text' : 'password'" name="password" required
+                    <input id="password" x-bind:type="show ? 'text' : 'password'" name="password" required
                         autocomplete="current-password" class="input input-bordered w-full mt-1 pr-12" />
 
                     <button type="button"

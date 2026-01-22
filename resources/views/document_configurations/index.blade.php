@@ -38,7 +38,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
                     </div>
-                    <span class="font-bold text-sm group-hover:text-primary transition-colors">Nueva
+                    <span class="font-bold text-base group-hover:text-primary transition-colors">Nueva
                         Configuración</span>
                 </a>
 
@@ -66,20 +66,19 @@
                         <div class="card-body p-2 flex flex-col">
                             <div class="flex justify-between items-start gap-0">
                                 <div class="flex-1 min-w-0">
-                                    <div class="tooltip tooltip-bottom before:text-xs before:max-w-[200px] before:content-[attr(data-tip)]"
+                                    <div class="tooltip tooltip-bottom before:text-sm before:max-w-[240px] before:content-[attr(data-tip)]"
                                         data-tip="{{ $config->document_name }}">
-                                        <h2 class="font-bold text-xs truncate text-left leading-none">
+                                        <h2 class="font-bold text-base truncate text-left leading-tight">
                                             {{ $config->document_name }}
                                         </h2>
                                     </div>
-                                    <p
-                                        class="text-[10px] text-gray-500 uppercase tracking-wide font-semibold leading-none mt-0">
+                                    <p class="text-sm text-gray-500 uppercase tracking-wide font-semibold leading-tight mt-1">
                                         {{ $config->document_type }}
                                     </p>
                                     @if($config->event)
-                                        <div class="mt-0">
+                                        <div class="mt-1">
                                             <span
-                                                class="badge badge-primary badge-outline badge-xs gap-1 h-3.5 px-1 text-[9px]">
+                                                class="badge badge-primary badge-outline badge-sm gap-1 px-2 text-sm">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -88,7 +87,7 @@
                                                 {{ $config->event->key }}
                                             </span>
                                             <span
-                                                class="text-[9px] text-gray-400 ml-1 truncate max-w-[150px] inline-block align-bottom leading-none"
+                                                class="text-sm text-gray-400 ml-2 truncate max-w-[200px] inline-block align-bottom leading-tight"
                                                 title="{{ $config->event->name }}">
                                                 {{ $config->event->name }}
                                             </span>
@@ -120,15 +119,15 @@
                                 </div>
                             </div>
 
-                            <p class="text-[9px] text-gray-600 line-clamp-1 mt-0 h-auto leading-none"
+                            <p class="text-sm text-gray-600 line-clamp-2 mt-1 h-auto leading-tight"
                                 title="{{ $config->description }}">
                                 {{ $config->description ?: 'Sin descripción' }}
                             </p>
 
-                            <div class="card-actions justify-between items-center border-t border-base-100 pt-1 mt-auto">
-                                <div class="flex items-center text-[10px] text-gray-400">
+                            <div class="card-actions justify-between items-center border-t border-base-100 pt-2 mt-auto">
+                                <div class="flex items-center text-sm text-gray-400">
                                     <div
-                                        class="badge {{ $config->is_active ? 'badge-success' : 'badge-ghost' }} badge-xs gap-1 mr-2 h-1.5 w-1.5 p-0">
+                                        class="badge {{ $config->is_active ? 'badge-success' : 'badge-ghost' }} badge-sm gap-1 mr-2 h-2 w-2 p-0">
                                     </div>
                                     {{ $config->page_size }} ({{ $config->page_orientation }})
                                 </div>

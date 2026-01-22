@@ -6,11 +6,12 @@
         <div class="flex items-center gap-3">
             <div
                 class="w-10 h-10 rounded-xl bg-primary flex-shrink-0 flex items-center justify-center text-primary-content font-bold text-xl shadow-lg shadow-primary/30">
-                C
+                S
             </div>
             <div class="transition-opacity duration-300" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 w-0'">
-                <h1 class="font-bold text-lg tracking-tight">Constancias</h1>
-                <p class="text-xs opacity-60 font-medium">Panel Administrativo</p>
+                <h1 class="font-bold text-lg tracking-tight">SIICE</h1>
+                <p class="text-[10px] opacity-60 font-medium leading-tight">Sistema Integral de<br>Identificación y
+                    Certificación</p>
             </div>
         </div>
 

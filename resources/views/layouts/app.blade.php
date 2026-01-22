@@ -132,6 +132,9 @@
         @if (session('info'))
             <div x-init="add('{{ session('info') }}', 'info')"></div>
         @endif
+        @if ($errors->any() && !session('error'))
+            <div x-init="add({{ json_encode($errors->first()) }}, 'error')"></div>
+        @endif
     </div>
 </body>
 
