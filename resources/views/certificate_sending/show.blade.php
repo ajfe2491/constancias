@@ -148,6 +148,127 @@
                     </div>
                 @endif
 
+                <!-- Certificates List -->
+                <div class="card bg-base-100 shadow-md">
+                    <div class="card-body">
+                        <div class="flex items-center justify-between">
+                            <h3 class="card-title text-sm">Constancias generadas</h3>
+                            <span class="text-xs opacity-70">{{ $certificates->total() }} registros</span>
+                        </div>
+                        <p class="text-xs opacity-60 mb-3">
+                            Para no sobrecargar, las previsualizaciones se cargan bajo demanda.
+                        </p>
+
+                        @if ($certificates->isEmpty())
+                            <div class="text-sm opacity-60">Aún no hay constancias generadas.</div>
+                        @else
+                            <div class="overflow-x-auto">
+                                <table class="table table-zebra table-compact w-full text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Folio</th>
+                                            <th>Correo</th>
+                                            <th>UUID</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($certificates as $certificate)
+                                            <tr x-data="{ open: false }">
+                                                <td class="font-mono">{{ $certificate->folio ?? 'N/A' }}</td>
+                                                <td>{{ $certificate->recipient_email ?? 'N/A' }}</td>
+                                                <td class="text-xs opacity-60">{{ $certificate->uuid }}</td>
+                                                <td class="space-x-2">
+                                                    <a href="{{ route('certificates.verify', $certificate->uuid) }}"
+                                                        target="_blank" class="btn btn-ghost btn-xs">Verificar</a>
+                                                    <button type="button" class="btn btn-primary btn-xs"
+                                                        @click="open = !open">
+                                                        <span x-text="open ? 'Ocultar' : 'Previsualizar'"></span>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline btn-xs"
+                                                        @click="$refs.resendModal.showModal()">Reenviar</button>
+                                                    <dialog x-ref="previewModal" class="modal">
+                                                        <div class="modal-box w-11/12 max-w-4xl p-0">
+                                                            <div class="flex items-center justify-between p-4 border-b">
+                                                                <h3 class="font-bold">Vista previa</h3>
+                                                                <form method="dialog">
+                                                                    <button class="btn btn-sm btn-circle btn-ghost">✕</button>
+                                                                </form>
+                                                            </div>
+                                                            <div class="p-4">
+                                                                <img src="{{ route('certificates.preview', $certificate->uuid) }}?format=png"
+                                                                    alt="Vista previa constancia"
+                                                                    class="w-full h-auto rounded border border-base-300" />
+                                                            </div>
+                                                        </div>
+                                                    </dialog>
+                                                    <dialog x-ref="resendModal" class="modal">
+                                                        <div class="modal-box">
+                                                            <h3 class="font-bold text-lg mb-2">Reenviar constancia</h3>
+                                                            <p class="text-sm opacity-70 mb-4">
+                                                                Ingresa el correo correcto para reenviar la constancia.
+                                                            </p>
+                                                            <form method="POST"
+                                                                action="{{ route('certificates.resend', $certificate) }}"
+                                                                class="space-y-4">
+                                                                @csrf
+                                                                <div class="form-control">
+                                                                    <label class="label">
+                                                                        <span class="label-text">Correo electrónico</span>
+                                                                    </label>
+                                                                    <input type="email" name="email"
+                                                                        value="{{ $certificate->recipient_email }}"
+                                                                        class="input input-bordered w-full" required />
+                                                                </div>
+                                                                @php
+                                                                    $extraData = collect($certificate->recipient_data ?? [])
+                                                                        ->except(['email'])
+                                                                        ->filter(fn($value) => $value !== null && $value !== '');
+                                                                @endphp
+                                                                @if ($extraData->isNotEmpty())
+                                                                    <div class="divider text-xs">Variables</div>
+                                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                                        @foreach ($extraData as $key => $value)
+                                                                            <div class="form-control">
+                                                                                <label class="label">
+                                                                                    <span class="label-text">{{ str_replace('_', ' ', ucfirst($key)) }}</span>
+                                                                                </label>
+                                                                                <input type="text" name="data[{{ $key }}]"
+                                                                                    value="{{ $value }}"
+                                                                                    class="input input-bordered w-full" />
+                                                                            </div>
+                                                                        @endforeach
+                                                                    </div>
+                                                                @endif
+                                                                <div class="flex justify-end gap-2">
+                                                                    <form method="dialog">
+                                                                        <button class="btn btn-ghost" type="submit">Cancelar</button>
+                                                                    </form>
+                                                                    <button type="submit" class="btn btn-primary">Reenviar</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </dialog>
+                                                </td>
+                                            </tr>
+                                            <tr x-show="open" style="display: none;">
+                                                <td colspan="4" class="text-xs opacity-60">
+                                                    Abriendo vista previa...
+                                                    <div x-init="$refs.previewModal.showModal(); open = false"></div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="mt-4">
+                                {{ $certificates->links() }}
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
                 <!-- Error Log -->
                 <div class="card bg-base-100 shadow-xl border border-error/20" x-show="errors.length"
                     style="display: none;">

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CertificateVerificationController;
+use App\Http\Controllers\CertificateResendController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\DocumentConfigurationController;
@@ -13,6 +14,12 @@ Route::get('/', function () {
 
 Route::get('/verificar/{uuid}', [CertificateVerificationController::class, 'show'])
     ->name('certificates.verify');
+Route::get('/verificar/{uuid}/preview', [CertificateVerificationController::class, 'preview'])
+    ->name('certificates.preview');
+
+Route::post('/certificates/{certificate}/resend', [CertificateResendController::class, 'store'])
+    ->middleware('auth')
+    ->name('certificates.resend');
 
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', 'permission:ver dashboard'])

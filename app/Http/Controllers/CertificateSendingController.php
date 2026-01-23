@@ -159,7 +159,10 @@ class CertificateSendingController extends Controller
     public function show(ConstancyGeneralHistory $history)
     {
         $history->load('documentConfiguration.event');
-        return view('certificate_sending.show', compact('history'));
+        $certificates = \App\Models\Certificate::where('history_id', $history->id)
+            ->orderBy('id')
+            ->paginate(25);
+        return view('certificate_sending.show', compact('history', 'certificates'));
     }
 
     public function downloadTemplate(DocumentConfiguration $documentConfiguration)

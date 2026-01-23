@@ -35,6 +35,13 @@
                 </div>
             </div>
 
+            <div class="border border-base-300 bg-base-100 rounded-xl p-4">
+                <div class="text-xs uppercase tracking-wider opacity-60 mb-2">Vista previa</div>
+                <img src="{{ route('certificates.preview', $certificate->uuid) }}?format=png"
+                    alt="Vista previa de la constancia"
+                    class="w-full h-auto rounded border border-base-200" />
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
                     <p class="opacity-60">Folio</p>
@@ -47,10 +54,6 @@
                 <div>
                     <p class="opacity-60">Fecha de emisión</p>
                     <p class="font-semibold">{{ $certificate->created_at?->format('Y-m-d H:i') }}</p>
-                </div>
-                <div>
-                    <p class="opacity-60">Participante</p>
-                    <p class="font-semibold">{{ $certificate->recipient_name ?? 'No disponible' }}</p>
                 </div>
                 <div>
                     <p class="opacity-60">Correo</p>
