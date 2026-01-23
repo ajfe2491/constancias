@@ -15,6 +15,8 @@ RUN apt-get update && \
     libfreetype6-dev \
     libicu-dev \
     libxml2-dev \
+    imagemagick \
+    libmagickwand-dev \
     libpq-dev && \
     docker-php-ext-configure gd --with-freetype --with-jpeg && \
     docker-php-ext-install \
@@ -26,8 +28,8 @@ RUN apt-get update && \
     pdo_pgsql \
     zip \
     gd && \
-    pecl install redis && \
-    docker-php-ext-enable redis && \
+    pecl install redis imagick && \
+    docker-php-ext-enable redis imagick && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

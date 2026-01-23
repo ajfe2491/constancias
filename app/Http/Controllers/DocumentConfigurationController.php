@@ -123,12 +123,17 @@ class DocumentConfigurationController extends Controller
         }
 
         if ($request->filled('sample_data')) {
-            $data['sample_data'] = $request->sample_data;
+            $sampleData = $request->sample_data;
+            if (is_string($sampleData)) {
+                $decoded = json_decode($sampleData, true);
+                $data['sample_data'] = is_array($decoded) ? $decoded : [];
+            } else {
+                $data['sample_data'] = $sampleData;
+            }
         }
 
         // Asegurar que los campos booleanos se procesen correctamente
         // Para checkboxes estándar, la presencia del campo indica "true".
-        $data['is_active'] = $request->has('is_active');
         $data['is_active'] = $request->has('is_active');
         $data['show_qr'] = $request->has('show_qr');
         $data['folio_year_prefix'] = $request->has('folio_year_prefix');
@@ -188,6 +193,12 @@ class DocumentConfigurationController extends Controller
             $tempConfig->text_elements = is_string($data['text_elements'])
                 ? json_decode($data['text_elements'], true)
                 : $data['text_elements'];
+        }
+
+        if (isset($data['sample_data'])) {
+            $tempConfig->sample_data = is_string($data['sample_data'])
+                ? json_decode($data['sample_data'], true)
+                : $data['sample_data'];
         }
 
         // Ensure boolean fields are correctly set from request
@@ -253,8 +264,41 @@ class DocumentConfigurationController extends Controller
         }
 
         $pdf = $tempConfig->generatePDF($sampleData);
+        $pdfContent = $pdf->Output('S');
 
-        return response($pdf->Output('S'), 200, [
+        if ($request->query('format') === 'png') {
+            if (!class_exists(\Imagick::class)) {
+                return response()->json([
+                    'message' => 'Imagick no está disponible en el servidor.'
+                ], 501);
+            }
+
+            $tmpDir = storage_path('app/tmp');
+            if (!is_dir($tmpDir)) {
+                mkdir($tmpDir, 0755, true);
+            }
+
+            $tmpPdf = $tmpDir . '/preview_' . $documentConfiguration->id . '_' . uniqid() . '.pdf';
+            file_put_contents($tmpPdf, $pdfContent);
+
+            $imagick = new \Imagick();
+            $imagick->setResolution(150, 150);
+            $imagick->readImage($tmpPdf . '[0]');
+            $imagick->setImageBackgroundColor('white');
+            $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
+            $imagick->setImageFormat('png');
+            $png = $imagick->getImageBlob();
+            $imagick->clear();
+            $imagick->destroy();
+            @unlink($tmpPdf);
+
+            return response($png, 200, [
+                'Content-Type' => 'image/png',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            ]);
+        }
+
+        return response($pdfContent, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="preview.pdf"'
         ]);

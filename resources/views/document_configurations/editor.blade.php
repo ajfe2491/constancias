@@ -35,7 +35,7 @@
 
     <!-- Full Screen Editor Layout -->
     <div class="flex flex-col h-[calc(100vh-65px)]"
-        x-data="editor('{{ route('document-configurations.preview', $documentConfiguration) }}')">
+        x-data="editor('{{ route('document-configurations.preview', $documentConfiguration) }}?format=png', '{{ route('document-configurations.update', $documentConfiguration) }}')">
 
         <!-- Top Bar: Sample Variables -->
         <div class="bg-base-100 border-b border-base-300 p-2 flex gap-4 items-center flex-wrap shrink-0 min-h-12">
@@ -94,22 +94,80 @@
                 class="shrink-0 bg-gray-100 dark:bg-gray-900 p-4 flex flex-col border-r border-base-300 relative">
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="font-bold text-sm uppercase tracking-wide opacity-70">Vista Previa</h3>
-                    <button @click="refreshPreview(true)" class="btn btn-xs btn-ghost gap-1">
+                    <div class="flex items-center gap-2">
+                        <label class="label cursor-pointer gap-2 py-0">
+                            <span class="label-text text-[10px]">Arrastrar elementos</span>
+                            <input type="checkbox" class="toggle toggle-xs toggle-primary"
+                                x-model="enableDrag" />
+                        </label>
+                        <button @click="refreshPreview(true)" class="btn btn-xs btn-ghost gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         Refrescar
-                    </button>
+                        </button>
+                    </div>
                 </div>
                 <div
+                    x-ref="previewContainer"
                     class="flex-1 bg-base-200 rounded-lg shadow-inner overflow-hidden relative flex items-center justify-center">
                     <div x-show="loading"
                         class="absolute inset-0 bg-base-100/50 flex items-center justify-center z-10 backdrop-blur-sm">
                         <span class="loading loading-spinner loading-lg text-primary"></span>
                     </div>
-                    <iframe x-ref="previewFrame" class="w-full h-full border-none" src="about:blank"></iframe>
+                    <div x-show="enableDrag" class="absolute inset-0 pointer-events-none z-20">
+                        <div x-ref="overlay" class="absolute pointer-events-none"
+                            :style="'width:' + overlayWidthPx + 'px; height:' + overlayHeightPx + 'px; transform: translate(' + overlayOffsetX + 'px,' + overlayOffsetY + 'px);'">
+                            <template x-for="(element, index) in textElements" :key="'drag-text-' + index">
+                                <div class="absolute border border-primary/60 bg-primary/10 rounded-sm cursor-move pointer-events-auto"
+                                    :style="elementStyle(element)"
+                                    @mousedown.prevent="startDrag($event, 'text', index)">
+                                    <span class="text-[9px] text-primary px-1 py-0.5 bg-base-100/80 rounded">
+                                        <span x-text="element.name || 'Texto'"></span>
+                                    </span>
+                                    <div class="absolute -left-1 -top-1 h-2.5 w-2.5 bg-primary rounded-sm border border-white cursor-nwse-resize"
+                                        @mousedown.prevent="startResize($event, 'text', index, 'nw')"></div>
+                                    <div class="absolute -right-1 -top-1 h-2.5 w-2.5 bg-primary rounded-sm border border-white cursor-nesw-resize"
+                                        @mousedown.prevent="startResize($event, 'text', index, 'ne')"></div>
+                                    <div class="absolute -left-1 -bottom-1 h-2.5 w-2.5 bg-primary rounded-sm border border-white cursor-nesw-resize"
+                                        @mousedown.prevent="startResize($event, 'text', index, 'sw')"></div>
+                                    <div class="absolute -right-1 -bottom-1 h-2.5 w-2.5 bg-primary rounded-sm border border-white cursor-nwse-resize"
+                                        @mousedown.prevent="startResize($event, 'text', index, 'se')"></div>
+                                </div>
+                            </template>
+                            <div x-show="showQr"
+                                class="absolute border border-secondary/70 bg-secondary/10 rounded-sm cursor-move pointer-events-auto"
+                                :style="qrStyle()"
+                                @mousedown.prevent="startDrag($event, 'qr', null)">
+                                <span class="text-[9px] text-secondary px-1 py-0.5 bg-base-100/80 rounded">QR</span>
+                                <div class="absolute -left-1 -top-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nwse-resize"
+                                    @mousedown.prevent="startResize($event, 'qr', null, 'nw')"></div>
+                                <div class="absolute -right-1 -top-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nesw-resize"
+                                    @mousedown.prevent="startResize($event, 'qr', null, 'ne')"></div>
+                                <div class="absolute -left-1 -bottom-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nesw-resize"
+                                    @mousedown.prevent="startResize($event, 'qr', null, 'sw')"></div>
+                                <div class="absolute -right-1 -bottom-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nwse-resize"
+                                    @mousedown.prevent="startResize($event, 'qr', null, 'se')"></div>
+                            </div>
+                            <div x-show="showFolio"
+                                class="absolute border border-accent/70 bg-accent/10 rounded-sm cursor-move pointer-events-auto"
+                                :style="folioStyle()"
+                                @mousedown.prevent="startDrag($event, 'folio', null)">
+                                <span class="text-[9px] text-accent px-1 py-0.5 bg-base-100/80 rounded">Folio</span>
+                                <div class="absolute -left-1 -top-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nwse-resize"
+                                    @mousedown.prevent="startResize($event, 'folio', null, 'nw')"></div>
+                                <div class="absolute -right-1 -top-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nesw-resize"
+                                    @mousedown.prevent="startResize($event, 'folio', null, 'ne')"></div>
+                                <div class="absolute -left-1 -bottom-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nesw-resize"
+                                    @mousedown.prevent="startResize($event, 'folio', null, 'sw')"></div>
+                                <div class="absolute -right-1 -bottom-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nwse-resize"
+                                    @mousedown.prevent="startResize($event, 'folio', null, 'se')"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <img x-ref="previewImage" class="max-w-full max-h-full" alt="Vista previa" @load="syncOverlayMetrics()" />
                 </div>
             </div>
 
@@ -405,6 +463,7 @@
                                 <input type="number" name="qr_x"
                                     value="{{ old('qr_x', $documentConfiguration->qr_x ?? 0) }}"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="qrX"
                                     @change="refreshPreview()" />
                             </div>
                             <div class="form-control">
@@ -413,6 +472,7 @@
                                 <input type="number" name="qr_y"
                                     value="{{ old('qr_y', $documentConfiguration->qr_y ?? 0) }}"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="qrY"
                                     @change="refreshPreview()" />
                             </div>
                             <div class="form-control">
@@ -421,6 +481,7 @@
                                 <input type="number" name="qr_width"
                                     value="{{ old('qr_width', $documentConfiguration->qr_width ?? 20) }}"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="qrWidth"
                                     @change="refreshPreview()" />
                             </div>
                             <div class="form-control">
@@ -429,6 +490,7 @@
                                 <input type="number" name="qr_height"
                                     value="{{ old('qr_height', $documentConfiguration->qr_height ?? 20) }}"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="qrHeight"
                                     @change="refreshPreview()" />
                             </div>
                         </div>
@@ -452,6 +514,7 @@
                                 <input type="number" name="folio_x"
                                     value="{{ old('folio_x', $documentConfiguration->folio_x ?? 10) }}"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="folioX"
                                     @change="refreshPreview()" />
                             </div>
                             <div class="form-control">
@@ -460,6 +523,7 @@
                                 <input type="number" name="folio_y"
                                     value="{{ old('folio_y', $documentConfiguration->folio_y ?? 10) }}"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="folioY"
                                     @change="refreshPreview()" />
                             </div>
                             <div class="form-control">
@@ -468,6 +532,7 @@
                                 <input type="number" name="folio_width"
                                     value="{{ old('folio_width', $documentConfiguration->folio_width ?? 50) }}"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="folioWidth"
                                     @change="refreshPreview()" />
                             </div>
                             <div class="form-control">
@@ -476,6 +541,7 @@
                                 <input type="number" name="folio_height"
                                     value="{{ old('folio_height', $documentConfiguration->folio_height ?? 10) }}"
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="folioHeight"
                                     @change="refreshPreview()" />
                             </div>
                             <div class="form-control">
@@ -678,7 +744,7 @@
         </div>
 
         <script>
-            function editor(previewUrl) {
+            function editor(previewUrl, updateUrl) {
                 return {
                     loading: false,
                     activeSection: 'basic',
@@ -687,6 +753,13 @@
                     showQr: {{ $documentConfiguration->show_qr ? 'true' : 'false' }},
                     showFolio: {{ $documentConfiguration->show_folio ? 'true' : 'false' }},
                     enableLivePreview: {{ $documentConfiguration->enable_live_preview ?? true ? 'true' : 'false' }},
+                    enableDrag: true,
+                    overlayScale: 1,
+                    overlayWidthPx: 0,
+                    overlayHeightPx: 0,
+                    overlayOffsetX: 0,
+                    overlayOffsetY: 0,
+                    dragState: null,
                     
                     // Page Settings
                     pageOrientation: '{{ $documentConfiguration->page_orientation ?? "P" }}',
@@ -698,16 +771,70 @@
                     backgroundY: {{ $documentConfiguration->background_y ?? 0 }},
                     backgroundWidth: {{ $documentConfiguration->background_width ?? 215.9 }},
                     backgroundHeight: {{ $documentConfiguration->background_height ?? 279.4 }},
+                    qrX: {{ $documentConfiguration->qr_x ?? 0 }},
+                    qrY: {{ $documentConfiguration->qr_y ?? 0 }},
+                    qrWidth: {{ $documentConfiguration->qr_width ?? 20 }},
+                    qrHeight: {{ $documentConfiguration->qr_height ?? 20 }},
+                    folioX: {{ $documentConfiguration->folio_x ?? 10 }},
+                    folioY: {{ $documentConfiguration->folio_y ?? 10 }},
+                    folioWidth: {{ $documentConfiguration->folio_width ?? 50 }},
+                    folioHeight: {{ $documentConfiguration->folio_height ?? 10 }},
 
                     activeElement: null,
                     previewUrl: previewUrl,
+                    updateUrl: updateUrl,
                     newVarKey: '',
 
                     notifications: [],
 
                     init() {
                         this.$nextTick(() => {
+                            let normalized = false;
+
+                            if (typeof this.sampleData === 'string') {
+                                try {
+                                    const parsed = JSON.parse(this.sampleData);
+                                    if (parsed && typeof parsed === 'object') {
+                                        this.sampleData = parsed;
+                                        normalized = true;
+                                    }
+                                } catch (error) {
+                                    this.sampleData = {};
+                                    normalized = true;
+                                }
+                            }
+
+                            if (typeof this.textElements === 'string') {
+                                try {
+                                    const parsed = JSON.parse(this.textElements);
+                                    if (Array.isArray(parsed)) {
+                                        this.textElements = parsed;
+                                        normalized = true;
+                                    }
+                                } catch (error) {
+                                    this.textElements = [];
+                                    normalized = true;
+                                }
+                            }
+
                             this.refreshPreview(true);
+                            this.syncOverlayMetrics();
+                            window.addEventListener('resize', () => this.syncOverlayMetrics());
+
+                            if (normalized) {
+                                this.scheduleAutoSave();
+                            }
+
+                            this.$watch('pageSize', () => {
+                                this.clampAllPositions();
+                                this.schedulePreview(true);
+                                this.syncOverlayMetrics();
+                            });
+                            this.$watch('pageOrientation', () => {
+                                this.clampAllPositions();
+                                this.schedulePreview(true);
+                                this.syncOverlayMetrics();
+                            });
 
                             const form = document.getElementById('config-form');
                             if (form) {
@@ -756,6 +883,8 @@
 
                         formData.set('text_elements', JSON.stringify(this.textElements));
                         formData.set('sample_data', JSON.stringify(this.sampleData));
+                        formData.set('page_orientation', this.pageOrientation);
+                        formData.set('page_size', this.pageSize);
 
                         if (this.backgroundFit) {
                             formData.set('background_x', this.backgroundX);
@@ -776,7 +905,7 @@
                             const formData = this.buildFormData();
                             formData.set('_method', 'PUT');
 
-                            const response = await fetch(this.previewUrl.replace('/live-preview', ''), {
+                            const response = await fetch(this.updateUrl, {
                                 method: 'POST',
                                 body: formData,
                                 headers: {
@@ -831,6 +960,287 @@
                         this.backgroundY = 0;
                         this.backgroundWidth = width.toFixed(1);
                         this.backgroundHeight = height.toFixed(1);
+                        this.syncOverlayMetrics();
+                    },
+
+                    getPageDimensionsMm() {
+                        let width = 215.9;
+                        let height = 279.4;
+
+                        switch (this.pageSize) {
+                            case 'A4':
+                                width = 210.0;
+                                height = 297.0;
+                                break;
+                            case 'Legal':
+                                width = 215.9;
+                                height = 355.6;
+                                break;
+                            case 'Letter':
+                            default:
+                                width = 215.9;
+                                height = 279.4;
+                        }
+
+                        if (this.pageOrientation === 'L') {
+                            const temp = width;
+                            width = height;
+                            height = temp;
+                        }
+
+                        return { width, height };
+                    },
+
+                    syncOverlayMetrics() {
+                        this.$nextTick(() => {
+                            const container = this.$refs.previewContainer;
+                            const img = this.$refs.previewImage;
+                            if (!container || !img) return;
+
+                            const rect = container.getBoundingClientRect();
+                            const imgRect = img.getBoundingClientRect();
+                            const page = this.getPageDimensionsMm();
+
+                            const scale = imgRect.width / page.width;
+                            if (!scale || scale <= 0) return;
+
+                            this.overlayScale = scale;
+                            this.overlayWidthPx = imgRect.width;
+                            this.overlayHeightPx = imgRect.height;
+                            this.overlayOffsetX = imgRect.left - rect.left;
+                            this.overlayOffsetY = imgRect.top - rect.top;
+                        });
+                    },
+
+                    elementStyle(element) {
+                        const page = this.getPageDimensionsMm();
+                        const x = (parseFloat(element.x || 0) * this.overlayScale) || 0;
+                        const y = (parseFloat(element.y || 0) * this.overlayScale) || 0;
+
+                        let widthMm = parseFloat(element.width);
+                        if (!Number.isFinite(widthMm) || widthMm <= 0) {
+                            const percent = parseFloat(element.auto_width_percent);
+                            if (Number.isFinite(percent) && percent > 0) {
+                                widthMm = page.width * (percent / 100);
+                            } else {
+                                widthMm = 40;
+                            }
+                        }
+
+                        let heightMm = parseFloat(element.height);
+                        if (!Number.isFinite(heightMm) || heightMm <= 0) {
+                            heightMm = 10;
+                        }
+
+                        widthMm = Math.max(widthMm, 10);
+                        heightMm = Math.max(heightMm, 6);
+
+                        const width = widthMm * this.overlayScale;
+                        const height = heightMm * this.overlayScale;
+                        return `left:${x}px; top:${y}px; width:${width}px; height:${height}px;`;
+                    },
+
+                    qrStyle() {
+                        const x = (parseFloat(this.qrX || 0) * this.overlayScale) || 0;
+                        const y = (parseFloat(this.qrY || 0) * this.overlayScale) || 0;
+                        const width = (parseFloat(this.qrWidth || 10) * this.overlayScale) || 10;
+                        const height = (parseFloat(this.qrHeight || 10) * this.overlayScale) || 10;
+                        return `left:${x}px; top:${y}px; width:${width}px; height:${height}px;`;
+                    },
+
+                    folioStyle() {
+                        const x = (parseFloat(this.folioX || 0) * this.overlayScale) || 0;
+                        const y = (parseFloat(this.folioY || 0) * this.overlayScale) || 0;
+                        const width = (parseFloat(this.folioWidth || 10) * this.overlayScale) || 10;
+                        const height = (parseFloat(this.folioHeight || 6) * this.overlayScale) || 6;
+                        return `left:${x}px; top:${y}px; width:${width}px; height:${height}px;`;
+                    },
+
+                    clampAllPositions() {
+                        const page = this.getPageDimensionsMm();
+
+                        const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+                        this.textElements = this.textElements.map((element) => {
+                            let widthMm = parseFloat(element.width);
+                            if (!Number.isFinite(widthMm) || widthMm <= 0) {
+                                const percent = parseFloat(element.auto_width_percent);
+                                if (Number.isFinite(percent) && percent > 0) {
+                                    widthMm = page.width * (percent / 100);
+                                } else {
+                                    widthMm = 40;
+                                }
+                            }
+
+                            let heightMm = parseFloat(element.height);
+                            if (!Number.isFinite(heightMm) || heightMm <= 0) {
+                                heightMm = 10;
+                            }
+
+                            const maxX = Math.max(page.width - widthMm, 0);
+                            const maxY = Math.max(page.height - heightMm, 0);
+
+                            const x = clamp(parseFloat(element.x || 0), 0, maxX);
+                            const y = clamp(parseFloat(element.y || 0), 0, maxY);
+
+                            return {
+                                ...element,
+                                x: parseFloat(x.toFixed(1)),
+                                y: parseFloat(y.toFixed(1)),
+                            };
+                        });
+
+                        const qrMaxX = Math.max(page.width - parseFloat(this.qrWidth || 0), 0);
+                        const qrMaxY = Math.max(page.height - parseFloat(this.qrHeight || 0), 0);
+                        this.qrX = clamp(parseFloat(this.qrX || 0), 0, qrMaxX);
+                        this.qrY = clamp(parseFloat(this.qrY || 0), 0, qrMaxY);
+
+                        const folioMaxX = Math.max(page.width - parseFloat(this.folioWidth || 0), 0);
+                        const folioMaxY = Math.max(page.height - parseFloat(this.folioHeight || 0), 0);
+                        this.folioX = clamp(parseFloat(this.folioX || 0), 0, folioMaxX);
+                        this.folioY = clamp(parseFloat(this.folioY || 0), 0, folioMaxY);
+
+                        this.scheduleAutoSave();
+                    },
+
+                    startDrag(event, type, index) {
+                        if (!this.enableDrag) return;
+                        const startX = event.clientX;
+                        const startY = event.clientY;
+                        let originX = 0;
+                        let originY = 0;
+
+                        if (type === 'text') {
+                            originX = parseFloat(this.textElements[index].x || 0);
+                            originY = parseFloat(this.textElements[index].y || 0);
+                        } else if (type === 'qr') {
+                            originX = parseFloat(this.qrX || 0);
+                            originY = parseFloat(this.qrY || 0);
+                        } else if (type === 'folio') {
+                            originX = parseFloat(this.folioX || 0);
+                            originY = parseFloat(this.folioY || 0);
+                        }
+
+                        this.dragState = { type, index, startX, startY, originX, originY };
+
+                        const onMove = (e) => {
+                            if (!this.dragState) return;
+                            const dx = (e.clientX - this.dragState.startX) / this.overlayScale;
+                            const dy = (e.clientY - this.dragState.startY) / this.overlayScale;
+                            const newX = parseFloat((this.dragState.originX + dx).toFixed(1));
+                            const newY = parseFloat((this.dragState.originY + dy).toFixed(1));
+
+                            if (this.dragState.type === 'text') {
+                                this.textElements[this.dragState.index].x = newX;
+                                this.textElements[this.dragState.index].y = newY;
+                            } else if (this.dragState.type === 'qr') {
+                                this.qrX = newX;
+                                this.qrY = newY;
+                            } else if (this.dragState.type === 'folio') {
+                                this.folioX = newX;
+                                this.folioY = newY;
+                            }
+                        };
+
+                        const onUp = () => {
+                            window.removeEventListener('mousemove', onMove);
+                            window.removeEventListener('mouseup', onUp);
+                            this.dragState = null;
+                            this.scheduleAutoSave();
+                            this.refreshPreview(true);
+                        };
+
+                        window.addEventListener('mousemove', onMove);
+                        window.addEventListener('mouseup', onUp);
+                    },
+
+                    startResize(event, type, index, direction = 'se') {
+                        if (!this.enableDrag) return;
+                        const startX = event.clientX;
+                        const startY = event.clientY;
+
+                        let originWidth = 0;
+                        let originHeight = 0;
+                        let originX = 0;
+                        let originY = 0;
+
+                        if (type === 'text') {
+                            originWidth = parseFloat(this.textElements[index].width || 40);
+                            originHeight = parseFloat(this.textElements[index].height || 10);
+                            originX = parseFloat(this.textElements[index].x || 0);
+                            originY = parseFloat(this.textElements[index].y || 0);
+                            this.textElements[index].auto_width_percent = 0;
+                        } else if (type === 'qr') {
+                            originWidth = parseFloat(this.qrWidth || 20);
+                            originHeight = parseFloat(this.qrHeight || 20);
+                            originX = parseFloat(this.qrX || 0);
+                            originY = parseFloat(this.qrY || 0);
+                        } else if (type === 'folio') {
+                            originWidth = parseFloat(this.folioWidth || 50);
+                            originHeight = parseFloat(this.folioHeight || 10);
+                            originX = parseFloat(this.folioX || 0);
+                            originY = parseFloat(this.folioY || 0);
+                        }
+
+                        const minWidth = 10;
+                        const minHeight = 6;
+
+                        const onMove = (e) => {
+                            const dx = (e.clientX - startX) / this.overlayScale;
+                            const dy = (e.clientY - startY) / this.overlayScale;
+                            let newWidth = originWidth;
+                            let newHeight = originHeight;
+                            let newX = originX;
+                            let newY = originY;
+
+                            if (direction.includes('e')) {
+                                newWidth = originWidth + dx;
+                            }
+                            if (direction.includes('s')) {
+                                newHeight = originHeight + dy;
+                            }
+                            if (direction.includes('w')) {
+                                newWidth = originWidth - dx;
+                                newX = originX + dx;
+                            }
+                            if (direction.includes('n')) {
+                                newHeight = originHeight - dy;
+                                newY = originY + dy;
+                            }
+
+                            newWidth = Math.max(minWidth, parseFloat(newWidth.toFixed(1)));
+                            newHeight = Math.max(minHeight, parseFloat(newHeight.toFixed(1)));
+                            newX = parseFloat(newX.toFixed(1));
+                            newY = parseFloat(newY.toFixed(1));
+
+                            if (type === 'text') {
+                                this.textElements[index].width = newWidth;
+                                this.textElements[index].height = newHeight;
+                                this.textElements[index].x = newX;
+                                this.textElements[index].y = newY;
+                            } else if (type === 'qr') {
+                                this.qrWidth = newWidth;
+                                this.qrHeight = newHeight;
+                                this.qrX = newX;
+                                this.qrY = newY;
+                            } else if (type === 'folio') {
+                                this.folioWidth = newWidth;
+                                this.folioHeight = newHeight;
+                                this.folioX = newX;
+                                this.folioY = newY;
+                            }
+                        };
+
+                        const onUp = () => {
+                            window.removeEventListener('mousemove', onMove);
+                            window.removeEventListener('mouseup', onUp);
+                            this.clampAllPositions();
+                            this.scheduleAutoSave();
+                            this.refreshPreview(true);
+                        };
+
+                        window.addEventListener('mousemove', onMove);
+                        window.addEventListener('mouseup', onUp);
                     },
 
                     addVariable() {
@@ -900,7 +1310,10 @@
                             if (response.ok) {
                                 const blob = await response.blob();
                                 const url = URL.createObjectURL(blob);
-                                this.$refs.previewFrame.src = url;
+                                if (this.$refs.previewImage) {
+                                    this.$refs.previewImage.src = url;
+                                }
+                                this.syncOverlayMetrics();
                             } else {
                                 console.error('Preview failed');
                                 this.showNotification('Error al generar la vista previa', 'error');
