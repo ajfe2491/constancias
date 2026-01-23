@@ -1,10 +1,10 @@
 <section>
     <header>
-        <h2 class="text-lg font-medium text-gray-900">
+        <h2 class="text-lg font-medium text-base-content">
             {{ __('Update Password') }}
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600">
+        <p class="mt-1 text-sm text-base-content/60">
             {{ __('Ensure your account is using a long, random password to stay secure.') }}
         </p>
     </header>
@@ -20,7 +20,7 @@
                     x-bind:type="show ? 'text' : 'password'" class="mt-1 block w-full pr-12"
                     autocomplete="current-password" />
                 <button type="button"
-                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
+                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-base-content/60 hover:text-base-content cursor-pointer transition-colors"
                     @click="show = !show">
                     <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                         stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -44,7 +44,7 @@
                 <x-text-input id="update_password_password" name="password" x-bind:type="show ? 'text' : 'password'"
                     class="mt-1 block w-full pr-12" autocomplete="new-password" />
                 <button type="button"
-                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
+                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-base-content/60 hover:text-base-content cursor-pointer transition-colors"
                     @click="show = !show">
                     <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                         stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -69,7 +69,7 @@
                     x-bind:type="show ? 'text' : 'password'" class="mt-1 block w-full pr-12"
                     autocomplete="new-password" />
                 <button type="button"
-                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
+                    class="absolute inset-y-0 right-0 pr-4 flex items-center text-base-content/60 hover:text-base-content cursor-pointer transition-colors"
                     @click="show = !show">
                     <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                         stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -92,7 +92,7 @@
 
             @if (session('status') === 'password-updated')
                 <p x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 2000)"
-                    class="text-sm text-gray-600">{{ __('Saved.') }}</p>
+                    class="text-sm text-base-content/60">{{ __('Saved.') }}</p>
             @endif
         </div>
     </form>

@@ -2,8 +2,8 @@
     <!-- Estado de sesión -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
-    <div class="space-y-6">
-        <header class="text-center space-y-1">
+    <div class="space-y-6" data-gsap-login>
+        <header class="text-center space-y-1" data-gsap="header">
             <h1 class="text-2xl font-bold tracking-tight">
                 Bienvenido de nuevo
             </h1>
@@ -12,13 +12,11 @@
             </p>
         </header>
 
-
-
-        <form method="POST" action="{{ route('login') }}" class="space-y-4">
+        <form method="POST" action="{{ route('login') }}" class="space-y-4" data-gsap="form">
             @csrf
 
             <!-- Correo electrónico -->
-            <div class="form-control">
+            <div class="form-control" data-gsap="field">
                 <x-input-label for="email" value="Correo electrónico" />
                 <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
                     autocomplete="username" class="input input-bordered w-full mt-1" />
@@ -26,7 +24,7 @@
             </div>
 
             <!-- Contraseña -->
-            <div class="form-control space-y-1" x-data="{ show: false }">
+            <div class="form-control space-y-1" x-data="{ show: false }" data-gsap="field">
                 <div class="flex items-center justify-between">
                     <x-input-label for="password" value="Contraseña" />
 
@@ -62,7 +60,7 @@
             </div>
 
             <!-- Recuérdame / botón -->
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between" data-gsap="actions">
                 <label for="remember_me" class="label cursor-pointer gap-2">
                     <input id="remember_me" type="checkbox" name="remember" class="checkbox checkbox-primary" />
                     <span class="label-text">Recuérdame</span>

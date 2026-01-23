@@ -104,8 +104,9 @@
                                         </svg>
                                     </label>
                                     <ul tabindex="0"
-                                        class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-40 text-xs">
+                                        class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-44 text-xs">
                                         <li><a href="{{ route('document-configurations.edit', $config) }}">Editar</a></li>
+                                        <li><a href="{{ route('document-configurations.copy', $config) }}">Copiar</a></li>
                                         <li>
                                             <form action="{{ route('document-configurations.destroy', $config) }}"
                                                 method="POST"

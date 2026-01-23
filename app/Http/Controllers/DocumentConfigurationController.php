@@ -6,6 +6,7 @@ use App\Models\DocumentConfiguration;
 use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use chillerlan\QRCode\QRCode;
 
 class DocumentConfigurationController extends Controller
@@ -43,6 +44,50 @@ class DocumentConfigurationController extends Controller
         $events = Event::where('is_active', true)->latest()->get();
         $preselectedEventId = $request->query('event_id');
         return view('document_configurations.create', compact('events', 'preselectedEventId'));
+    }
+
+    /**
+     * Show the form for copying the specified resource.
+     */
+    public function copy(DocumentConfiguration $documentConfiguration)
+    {
+        $events = Event::where('is_active', true)->latest()->get();
+        return view('document_configurations.copy', compact('documentConfiguration', 'events'));
+    }
+
+    /**
+     * Store a copied configuration.
+     */
+    public function storeCopy(Request $request, DocumentConfiguration $documentConfiguration)
+    {
+        $validated = $request->validate([
+            'document_name' => 'required|string|max:255',
+            'document_type' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'event_id' => 'nullable|exists:events,id',
+        ]);
+
+        $copy = $documentConfiguration->replicate();
+        $copy->document_name = $validated['document_name'];
+        $copy->document_type = $validated['document_type'];
+        $copy->description = $validated['description'] ?? null;
+        $copy->event_id = $validated['event_id'] ?? null;
+
+        if ($documentConfiguration->background_image &&
+            Storage::disk('public')->exists($documentConfiguration->background_image)) {
+            $extension = pathinfo($documentConfiguration->background_image, PATHINFO_EXTENSION);
+            $extension = $extension ?: 'png';
+            $newPath = 'backgrounds/' . Str::uuid() . '.' . $extension;
+
+            if (Storage::disk('public')->copy($documentConfiguration->background_image, $newPath)) {
+                $copy->background_image = $newPath;
+            }
+        }
+
+        $copy->save();
+
+        return redirect()->route('document-configurations.edit', $copy)
+            ->with('success', 'Configuración copiada. Ahora puedes personalizarla.');
     }
 
     /**

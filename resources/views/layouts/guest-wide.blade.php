@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" x-data="themeSwitcher()" x-init="init()">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
     <meta charset="utf-8">
@@ -19,7 +19,8 @@
 <body class="font-sans antialiased bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
     <div class="min-h-screen flex flex-col bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
         <!-- Header (Static, full width) -->
-        <div class="w-full px-6 pt-6">
+        <div class="w-full px-6 pt-6 relative z-30"
+            style="position: sticky; top: 0; z-index: 9999;">
             <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                     <x-application-logo class="w-16 h-16 drop-shadow-md" />
@@ -37,10 +38,11 @@
                     </span>
                 </a>
 
-                <button type="button" @click="toggle()"
-                    class="inline-flex items-center px-3 py-2 text-xs font-semibold rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 shadow-sm transition-colors">
-                    <span x-show="!dark">Modo oscuro</span>
-                    <span x-show="dark">Modo claro</span>
+                <button type="button" data-theme-toggle onclick="window.__toggleTheme && window.__toggleTheme()"
+                    class="inline-flex items-center px-3 py-2 text-xs font-semibold rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 shadow-sm transition-colors cursor-pointer pointer-events-auto select-none"
+                    style="cursor: pointer; pointer-events: auto; position: relative; z-index: 9999;">
+                    <span data-theme-label="dark">Modo oscuro</span>
+                    <span data-theme-label="light" class="hidden">Modo claro</span>
                 </button>
             </div>
         </div>
@@ -119,6 +121,62 @@
             <div x-init="add({{ json_encode($errors->first()) }}, 'error')"></div>
         @endif
     </div>
+    <script>
+        (() => {
+            const root = document.documentElement;
+
+            const updateLabels = (isDark) => {
+                document.querySelectorAll('[data-theme-toggle]').forEach((btn) => {
+                    const darkLabel = btn.querySelector('[data-theme-label="dark"]');
+                    const lightLabel = btn.querySelector('[data-theme-label="light"]');
+                    if (!darkLabel || !lightLabel) return;
+                    darkLabel.classList.toggle('hidden', isDark);
+                    lightLabel.classList.toggle('hidden', !isDark);
+                });
+            };
+
+            const setTheme = (isDark) => {
+                root.classList.toggle('dark', isDark);
+                root.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                updateLabels(isDark);
+                window.localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            };
+
+            const storedTheme = window.localStorage.getItem('theme');
+            const prefersDark = window.matchMedia &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (storedTheme === 'dark' || storedTheme === 'light') {
+                setTheme(storedTheme === 'dark');
+            } else {
+                setTheme(prefersDark);
+            }
+
+            window.__toggleTheme = () => {
+                setTheme(!root.classList.contains('dark'));
+            };
+
+            const findToggleFromEvent = (event) => {
+                const direct = event.target.closest && event.target.closest('[data-theme-toggle]');
+                if (direct) return direct;
+                const toggles = Array.from(document.querySelectorAll('[data-theme-toggle]'));
+                if (!toggles.length) return null;
+                const { clientX, clientY } = event;
+                return toggles.find((btn) => {
+                    const rect = btn.getBoundingClientRect();
+                    return clientX >= rect.left && clientX <= rect.right &&
+                        clientY >= rect.top && clientY <= rect.bottom;
+                }) || null;
+            };
+
+            document.addEventListener('click', (event) => {
+                const button = findToggleFromEvent(event);
+                if (!button) return;
+                event.preventDefault();
+                window.__toggleTheme();
+            }, true);
+        })();
+    </script>
 </body>
 
 </html>

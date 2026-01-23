@@ -33,6 +33,8 @@ Route::middleware('auth')->group(function () {
     Route::post('document-configurations/{document_configuration}/live-preview', [\App\Http\Controllers\DocumentConfigurationController::class, 'preview'])->name('document-configurations.preview');
     Route::get('document-configurations/{document_configuration}/stream-pdf', [\App\Http\Controllers\DocumentConfigurationController::class, 'streamPdf'])->name('document-configurations.stream-pdf');
     Route::get('document-configurations/{document_configuration}/background-image', [\App\Http\Controllers\DocumentConfigurationController::class, 'backgroundImage'])->name('document-configurations.background-image');
+    Route::get('document-configurations/{document_configuration}/copy', [\App\Http\Controllers\DocumentConfigurationController::class, 'copy'])->name('document-configurations.copy');
+    Route::post('document-configurations/{document_configuration}/copy', [\App\Http\Controllers\DocumentConfigurationController::class, 'storeCopy'])->name('document-configurations.copy.store');
     Route::resource('document-configurations', \App\Http\Controllers\DocumentConfigurationController::class);
     Route::get('/certificate-sending/{history}/status', [CertificateSendingController::class, 'status'])->name('certificate-sending.status');
     Route::resource('certificate-sending', CertificateSendingController::class)
