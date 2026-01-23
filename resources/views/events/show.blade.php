@@ -76,6 +76,37 @@
                             </div>
                         </div>
 
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t border-base-200">
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Plantillas</h3>
+                                <p class="font-semibold text-sm">{{ $totalTemplates }}</p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Lotes</h3>
+                                <p class="font-semibold text-sm">{{ $totalBatches }}</p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Constancias</h3>
+                                <p class="font-semibold text-sm">{{ $totalCertificates }}</p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Envíos OK</h3>
+                                <p class="font-semibold text-sm">{{ $totalSuccessful }}</p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Último envío</h3>
+                                <p class="font-medium text-sm">
+                                    {{ $lastBatchAt ? $lastBatchAt->diffForHumans() : 'Sin envíos' }}
+                                </p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Duración</h3>
+                                <p class="font-medium text-sm">
+                                    {{ $eventDurationDays ? $eventDurationDays . ' días' : 'N/A' }}
+                                </p>
+                            </div>
+                        </div>
+
                         @if($event->description)
                             <div class="pt-4 border-t border-base-200">
                                 <h3 class="text-xs font-bold opacity-50 uppercase tracking-wider mb-1">Descripción</h3>

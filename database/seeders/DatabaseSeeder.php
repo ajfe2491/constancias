@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,12 +21,12 @@ class DatabaseSeeder extends Seeder
 
         $adminRole = Role::where('name', 'Administrador')->first();
 
-        // Ensure default admin exists
+        $adminEmail = 'admin@siice.com';
         $admin = User::firstOrCreate(
-            ['email' => 'admin@example.com'],
+            ['email' => $adminEmail],
             [
-                'name' => 'Administrador',
-                'password' => '$2y$12$R9/w.7ZzZz.z/z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.z.', // generic hash or use Hash::make
+                'name' => $adminEmail,
+                'password' => Hash::make($adminEmail),
             ],
         );
 

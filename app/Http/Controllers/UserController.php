@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
@@ -34,7 +35,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', Rule::unique(User::class, 'name')],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'roles' => ['required', 'array'],
@@ -66,10 +67,14 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', Rule::unique(User::class, 'name')->ignore($user->id)],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class . ',email,' . $user->id],
             'roles' => ['required', 'array'],
         ]);
+
+        if ($user->name === 'admin@siice.com' && $request->name !== 'admin@siice.com') {
+            return back()->with('error', 'No puedes cambiar el nombre del usuario super admin.');
+        }
 
         $user->update([
             'name' => $request->name,
@@ -97,6 +102,10 @@ class UserController extends Controller
     {
         if ($user->id === auth()->id()) {
             return back()->with('error', 'No puedes eliminar tu propio usuario.');
+        }
+
+        if ($user->name === 'admin@siice.com') {
+            return back()->with('error', 'No puedes eliminar al usuario super admin.');
         }
 
         $user->delete();

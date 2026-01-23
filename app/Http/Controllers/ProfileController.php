@@ -26,6 +26,11 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
+        if ($request->user()->name === 'admin@siice.com' && $request->name !== 'admin@siice.com') {
+            return Redirect::route('profile.edit')
+                ->with('error', 'No puedes cambiar el nombre del usuario super admin.');
+        }
+
         $request->user()->fill($request->validated());
 
         if ($request->user()->isDirty('email')) {
@@ -47,6 +52,11 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        if ($user->name === 'admin@siice.com') {
+            return Redirect::route('profile.edit')
+                ->with('error', 'No puedes eliminar la cuenta super admin.');
+        }
 
         Auth::logout();
 

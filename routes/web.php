@@ -41,6 +41,8 @@ Route::middleware('auth')->group(function () {
         ->only(['index', 'create', 'store', 'show'])
         ->parameters(['certificate-sending' => 'history']);
     Route::get('/certificate-sending/{document_configuration}/template', [CertificateSendingController::class, 'downloadTemplate'])->name('certificate-sending.template');
+    Route::post('/events/{event}/toggle-active', [EventController::class, 'toggleActive'])
+        ->name('events.toggle-active');
     Route::resource('events', \App\Http\Controllers\EventController::class);
 
     // User & Role Management

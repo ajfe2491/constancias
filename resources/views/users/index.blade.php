@@ -35,7 +35,12 @@
                             @foreach ($users as $user)
                                 <tr class="hover">
                                     <td>
-                                        <div class="font-bold">{{ $user->name }}</div>
+                                        <div class="flex items-center gap-2">
+                                            <div class="font-bold">{{ $user->name }}</div>
+                                            @if($user->name === 'admin@siice.com')
+                                                <span class="badge badge-warning badge-outline badge-sm">Super Admin</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td>{{ $user->email }}</td>
                                     <td>
@@ -49,13 +54,17 @@
                                             <a href="{{ route('users.edit', $user) }}" class="btn btn-ghost btn-xs">
                                                 Editar
                                             </a>
-                                            <form action="{{ route('users.destroy', $user) }}" method="POST"
-                                                onsubmit="return confirm('¿Confirmar eliminación?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit"
-                                                    class="btn btn-ghost btn-xs text-error">Eliminar</button>
-                                            </form>
+                                            @if($user->name === 'admin@siice.com')
+                                                <span class="text-xs text-warning">No eliminable</span>
+                                            @else
+                                                <form action="{{ route('users.destroy', $user) }}" method="POST"
+                                                    onsubmit="return confirm('¿Confirmar eliminación?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit"
+                                                        class="btn btn-ghost btn-xs text-error">Eliminar</button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

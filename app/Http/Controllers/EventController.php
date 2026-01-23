@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Certificate;
+use App\Models\ConstancyGeneralHistory;
 
 class EventController extends Controller
 {
@@ -12,6 +14,7 @@ class EventController extends Controller
     public function index(Request $request)
     {
         $query = \App\Models\Event::with('documentConfigurations')->latest();
+        $showInactive = $request->boolean('show_inactive');
 
         if ($request->has('search')) {
             $search = $request->get('search');
@@ -21,8 +24,12 @@ class EventController extends Controller
             });
         }
 
+        if (!$showInactive) {
+            $query->where('is_active', true);
+        }
+
         $events = $query->get();
-        return view('events.index', compact('events'));
+        return view('events.index', compact('events', 'showInactive'));
     }
 
     /**
@@ -58,7 +65,24 @@ class EventController extends Controller
     public function show(\App\Models\Event $event)
     {
         $event->load('documentConfigurations');
-        return view('events.show', compact('event'));
+        $configIds = $event->documentConfigurations->pluck('id');
+        $batchBase = ConstancyGeneralHistory::whereIn('document_configuration_id', $configIds);
+        $lastBatch = (clone $batchBase)->latest()->first();
+
+        $eventDurationDays = null;
+        if ($event->start_date && $event->end_date) {
+            $eventDurationDays = $event->start_date->diffInDays($event->end_date) + 1;
+        }
+
+        return view('events.show', [
+            'event' => $event,
+            'totalTemplates' => $event->documentConfigurations->count(),
+            'totalCertificates' => Certificate::where('event_id', $event->id)->count(),
+            'totalBatches' => (clone $batchBase)->count(),
+            'totalSuccessful' => (clone $batchBase)->sum('procesados_exitosos'),
+            'lastBatchAt' => $lastBatch?->created_at,
+            'eventDurationDays' => $eventDurationDays,
+        ]);
     }
 
     /**
@@ -110,5 +134,18 @@ class EventController extends Controller
         $event->delete();
         return redirect()->route('events.index')
             ->with('success', 'Evento eliminado exitosamente.');
+    }
+
+    /**
+     * Toggle active status.
+     */
+    public function toggleActive(\App\Models\Event $event)
+    {
+        $event->is_active = !$event->is_active;
+        $event->save();
+
+        return back()->with('success', $event->is_active
+            ? 'Evento activado correctamente.'
+            : 'Evento inactivado correctamente.');
     }
 }

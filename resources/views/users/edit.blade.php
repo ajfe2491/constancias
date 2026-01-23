@@ -21,7 +21,13 @@
                                 <span class="label-text">Nombre</span>
                             </label>
                             <input type="text" name="name" value="{{ old('name', $user->name) }}"
-                                class="input input-bordered w-full" required />
+                                class="input input-bordered w-full {{ $user->name === 'admin@siice.com' ? 'cursor-not-allowed opacity-70' : '' }}"
+                                required {{ $user->name === 'admin@siice.com' ? 'readonly' : '' }} />
+                            @if($user->name === 'admin@siice.com')
+                                <label class="label">
+                                    <span class="label-text-alt text-warning">Nombre reservado (Super Admin)</span>
+                                </label>
+                            @endif
                             @error('name') <span class="text-error text-sm">{{ $message }}</span> @enderror
                         </div>
 

@@ -441,7 +441,7 @@ class DocumentConfigurationController extends Controller
     {
         $eventId = $documentConfiguration->event_id;
 
-        if ($documentConfiguration->background_image) {
+        if ($documentConfiguration->background_image && $documentConfiguration->isForceDeleting()) {
             Storage::disk('public')->delete($documentConfiguration->background_image);
         }
 

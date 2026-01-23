@@ -122,6 +122,101 @@
                 </div>
             </div>
 
+            <!-- Extra Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-gsap="stats-extra">
+                <div class="stats shadow bg-base-100 border border-base-200" data-gsap-item>
+                    <div class="stat">
+                        <div class="stat-figure text-warning">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                class="inline-block w-7 h-7 stroke-current">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4m0 4h.01M4.93 4.93l14.14 14.14M7 3h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+                            </svg>
+                        </div>
+                        <div class="stat-title opacity-70">Eventos Inactivos</div>
+                        <div class="stat-value text-warning">{{ $inactiveEvents }}</div>
+                        <div class="stat-desc">Ocultos por defecto</div>
+                    </div>
+                </div>
+
+                <div class="stats shadow bg-base-100 border border-base-200" data-gsap-item>
+                    <div class="stat">
+                        <div class="stat-figure text-info">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                class="inline-block w-7 h-7 stroke-current">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 7h18M3 12h18M3 17h18" />
+                            </svg>
+                        </div>
+                        <div class="stat-title opacity-70">Lotes Procesados</div>
+                        <div class="stat-value text-info">{{ $totalBatches }}</div>
+                        <div class="stat-desc">Emisiones registradas</div>
+                    </div>
+                </div>
+
+                <div class="stats shadow bg-base-100 border border-base-200" data-gsap-item>
+                    <div class="stat">
+                        <div class="stat-figure text-success">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                class="inline-block w-7 h-7 stroke-current">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 6v6l4 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="stat-title opacity-70">Último Envío</div>
+                        <div class="stat-value text-success text-2xl">
+                            {{ $lastBatchAt ? $lastBatchAt->diffForHumans() : 'Sin envíos' }}
+                        </div>
+                        <div class="stat-desc">Actividad más reciente</div>
+                    </div>
+                </div>
+
+                <div class="stats shadow bg-base-100 border border-base-200" data-gsap-item>
+                    <div class="stat">
+                        <div class="stat-figure text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                class="inline-block w-7 h-7 stroke-current">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div class="stat-title opacity-70">Constancias Hoy</div>
+                        <div class="stat-value text-primary">{{ number_format($certificatesToday) }}</div>
+                        <div class="stat-desc">Emitidas hoy</div>
+                    </div>
+                </div>
+
+                <div class="stats shadow bg-base-100 border border-base-200" data-gsap-item>
+                    <div class="stat">
+                        <div class="stat-figure text-secondary">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                class="inline-block w-7 h-7 stroke-current">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div class="stat-title opacity-70">Constancias del Mes</div>
+                        <div class="stat-value text-secondary">{{ number_format($certificatesThisMonth) }}</div>
+                        <div class="stat-desc">Mes en curso</div>
+                    </div>
+                </div>
+
+                <div class="stats shadow bg-base-100 border border-base-200" data-gsap-item>
+                    <div class="stat">
+                        <div class="stat-figure text-accent">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                class="inline-block w-7 h-7 stroke-current">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="stat-title opacity-70">Éxito 30 días</div>
+                        <div class="stat-value text-accent">{{ $last30SuccessRate }}%</div>
+                        <div class="stat-desc">Procesamiento reciente</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Analytics Charts Section -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8" data-gsap="charts">
                 <!-- Line Chart: Monthly Trends -->
@@ -386,6 +481,15 @@
                     duration: 1.1,
                     ease: 'back.out(1.5)',
                     stagger: 0.14
+                });
+
+                animateSection('[data-gsap="stats-extra"]', {
+                    opacity: 0,
+                    y: 24,
+                    scale: 0.98,
+                    duration: 1.1,
+                    ease: 'power3.out',
+                    stagger: 0.12
                 });
 
                 animateSection('[data-gsap="charts"]', {

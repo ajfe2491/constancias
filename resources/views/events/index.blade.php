@@ -12,8 +12,9 @@
 
             <!-- Search and Actions -->
             <div class="flex flex-col sm:flex-row gap-4 mb-6 justify-between items-center">
-                <form action="{{ route('events.index') }}" method="GET" class="w-full sm:w-auto flex-1 max-w-md">
-                    <div class="relative">
+                <form action="{{ route('events.index') }}" method="GET"
+                    class="w-full sm:w-auto flex-1 max-w-md flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                    <div class="relative w-full">
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Buscar eventos..."
                             class="input input-bordered w-full pl-10 input-sm" />
                         <svg xmlns="http://www.w3.org/2000/svg"
@@ -23,6 +24,11 @@
                                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
+                    <label class="label cursor-pointer gap-2">
+                        <input type="checkbox" name="show_inactive" value="1" class="checkbox checkbox-primary checkbox-sm"
+                            {{ $showInactive ? 'checked' : '' }} onchange="this.form.submit()" />
+                        <span class="label-text text-sm">Mostrar inactivos</span>
+                    </label>
                 </form>
             </div>
 
@@ -61,6 +67,11 @@
                                             class="font-mono bg-base-200 px-1.5 rounded text-base-content/70 mr-1">{{ $event->key }}</span>
                                         {{ $event->type }}
                                     </p>
+                                    @if(!$event->is_active)
+                                        <div class="mt-1">
+                                            <span class="badge badge-warning badge-outline badge-sm">Inactivo</span>
+                                        </div>
+                                    @endif
 
                                     @if($event->documentConfigurations->count() > 0)
                                         <div class="mt-1 flex flex-wrap gap-1">
@@ -82,8 +93,16 @@
                                         </svg>
                                     </label>
                                     <ul tabindex="0"
-                                        class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-40 text-xs">
+                                        class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-44 text-xs">
                                         <li><button @click='openEdit(@json($event))'>Editar</button></li>
+                                        <li>
+                                            <form action="{{ route('events.toggle-active', $event) }}" method="POST">
+                                                @csrf
+                                                <button type="submit">
+                                                    {{ $event->is_active ? 'Inactivar' : 'Activar' }}
+                                                </button>
+                                            </form>
+                                        </li>
                                         <li>
                                             <form action="{{ route('events.destroy', $event) }}" method="POST"
                                                 onsubmit="return confirm('¿Estás seguro?');">

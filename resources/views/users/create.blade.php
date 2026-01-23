@@ -21,6 +21,9 @@
                             </label>
                             <input type="text" name="name" value="{{ old('name') }}" class="input input-bordered w-full"
                                 required autofocus />
+                            <label class="label">
+                                <span class="label-text-alt text-warning">"admin@siice.com" está reservado</span>
+                            </label>
                             @error('name') <span class="text-error text-sm">{{ $message }}</span> @enderror
                         </div>
 

@@ -28,7 +28,7 @@ class Certificate extends Model
 
     public function documentConfiguration()
     {
-        return $this->belongsTo(DocumentConfiguration::class);
+        return $this->belongsTo(DocumentConfiguration::class)->withTrashed();
     }
 
     public function event()

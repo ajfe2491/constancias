@@ -14,9 +14,18 @@ class DashboardController extends Controller
     {
         // KPIs
         $totalCertificates = ConstancyGeneralHistory::sum('procesados_exitosos');
-        $activeEvents = Event::count(); // Assuming all events are relevant for now
+        $activeEvents = Event::where('is_active', true)->count();
         $totalTemplates = DocumentConfiguration::count();
         $totalUsers = User::count();
+        $inactiveEvents = Event::where('is_active', false)->count();
+        $totalBatches = ConstancyGeneralHistory::count();
+        $lastBatchAt = ConstancyGeneralHistory::latest()->value('created_at');
+        $certificatesToday = ConstancyGeneralHistory::whereDate('created_at', now()->toDateString())
+            ->sum('procesados_exitosos');
+        $certificatesThisMonth = ConstancyGeneralHistory::whereBetween('created_at', [
+            now()->startOfMonth(),
+            now()->endOfMonth(),
+        ])->sum('procesados_exitosos');
 
         // Recent Activity
         $recentBatches = ConstancyGeneralHistory::with(['user', 'documentConfiguration'])
@@ -60,6 +69,12 @@ class DashboardController extends Controller
         $totalSuccess = ConstancyGeneralHistory::sum('procesados_exitosos');
         $globalSuccessRate = $totalRecords > 0 ? round(($totalSuccess / $totalRecords) * 100, 1) : 0;
 
+        $last30Records = ConstancyGeneralHistory::where('created_at', '>=', now()->subDays(30))
+            ->sum('total_registros');
+        $last30Success = ConstancyGeneralHistory::where('created_at', '>=', now()->subDays(30))
+            ->sum('procesados_exitosos');
+        $last30SuccessRate = $last30Records > 0 ? round(($last30Success / $last30Records) * 100, 1) : 0;
+
         // 4. Certificates by Event Type
         $eventTypeStats = ConstancyGeneralHistory::join('document_configurations', 'constancy_general_history.document_configuration_id', '=', 'document_configurations.id')
             ->join('events', 'document_configurations.event_id', '=', 'events.id')
@@ -90,12 +105,18 @@ class DashboardController extends Controller
             'activeEvents',
             'totalTemplates',
             'totalUsers',
+            'inactiveEvents',
+            'totalBatches',
+            'lastBatchAt',
+            'certificatesToday',
+            'certificatesThisMonth',
             'recentBatches',
             'months',
             'monthlyCounts',
             'eventLabels',
             'eventCounts',
             'globalSuccessRate',
+            'last30SuccessRate',
             'eventTypeLabels',
             'eventTypeCounts',
             'failureStats'
