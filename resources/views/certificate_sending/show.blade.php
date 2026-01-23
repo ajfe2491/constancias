@@ -174,34 +174,15 @@
                                     </thead>
                                     <tbody>
                                         @foreach ($certificates as $certificate)
-                                            <tr x-data="{ open: false }">
+                                            <tr>
                                                 <td class="font-mono">{{ $certificate->folio ?? 'N/A' }}</td>
                                                 <td>{{ $certificate->recipient_email ?? 'N/A' }}</td>
                                                 <td class="text-xs opacity-60">{{ $certificate->uuid }}</td>
                                                 <td class="space-x-2">
                                                     <a href="{{ route('certificates.verify', $certificate->uuid) }}"
                                                         target="_blank" class="btn btn-ghost btn-xs">Verificar</a>
-                                                    <button type="button" class="btn btn-primary btn-xs"
-                                                        @click="open = !open">
-                                                        <span x-text="open ? 'Ocultar' : 'Previsualizar'"></span>
-                                                    </button>
                                                     <button type="button" class="btn btn-outline btn-xs"
                                                         @click="$refs.resendModal.showModal()">Reenviar</button>
-                                                    <dialog x-ref="previewModal" class="modal">
-                                                        <div class="modal-box w-11/12 max-w-4xl p-0">
-                                                            <div class="flex items-center justify-between p-4 border-b">
-                                                                <h3 class="font-bold">Vista previa</h3>
-                                                                <form method="dialog">
-                                                                    <button class="btn btn-sm btn-circle btn-ghost">✕</button>
-                                                                </form>
-                                                            </div>
-                                                            <div class="p-4">
-                                                                <img src="{{ route('certificates.preview', $certificate->uuid) }}?format=png"
-                                                                    alt="Vista previa constancia"
-                                                                    class="w-full h-auto rounded border border-base-300" />
-                                                            </div>
-                                                        </div>
-                                                    </dialog>
                                                     <dialog x-ref="resendModal" class="modal">
                                                         <div class="modal-box">
                                                             <h3 class="font-bold text-lg mb-2">Reenviar constancia</h3>
@@ -222,7 +203,7 @@
                                                                 </div>
                                                                 @php
                                                                     $extraData = collect($certificate->recipient_data ?? [])
-                                                                        ->except(['email'])
+                                                                        ->except(['email', 'folio', 'folio_number', 'qr_path'])
                                                                         ->filter(fn($value) => $value !== null && $value !== '');
                                                                 @endphp
                                                                 @if ($extraData->isNotEmpty())
@@ -241,20 +222,13 @@
                                                                     </div>
                                                                 @endif
                                                                 <div class="flex justify-end gap-2">
-                                                                    <form method="dialog">
-                                                                        <button class="btn btn-ghost" type="submit">Cancelar</button>
-                                                                    </form>
+                                                                    <button type="button" class="btn btn-ghost"
+                                                                        @click="$refs.resendModal.close()">Cancelar</button>
                                                                     <button type="submit" class="btn btn-primary">Reenviar</button>
                                                                 </div>
                                                             </form>
                                                         </div>
                                                     </dialog>
-                                                </td>
-                                            </tr>
-                                            <tr x-show="open" style="display: none;">
-                                                <td colspan="4" class="text-xs opacity-60">
-                                                    Abriendo vista previa...
-                                                    <div x-init="$refs.previewModal.showModal(); open = false"></div>
                                                 </td>
                                             </tr>
                                         @endforeach
