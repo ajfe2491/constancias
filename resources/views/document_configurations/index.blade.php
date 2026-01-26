@@ -56,10 +56,14 @@
                             <!-- Overlay on hover -->
                             <div
                                 class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center backdrop-blur-[2px] opacity-0 group-hover:opacity-100">
-                                <a href="{{ route('document-configurations.edit', $config) }}"
-                                    class="btn btn-primary btn-xs shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                                    Editar
-                                </a>
+                                @if($config->user_id === Auth::id() || Auth::user()->isSuperAdmin())
+                                    <a href="{{ route('document-configurations.edit', $config) }}"
+                                        class="btn btn-primary btn-xs shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                                        Editar
+                                    </a>
+                                @else
+                                    <span class="text-xs text-white opacity-80">Solo lectura</span>
+                                @endif
                             </div>
                         </figure>
 
@@ -105,17 +109,25 @@
                                     </label>
                                     <ul tabindex="0"
                                         class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-44 text-xs">
-                                        <li><a href="{{ route('document-configurations.edit', $config) }}">Editar</a></li>
-                                        <li><a href="{{ route('document-configurations.copy', $config) }}">Copiar</a></li>
-                                        <li>
-                                            <form action="{{ route('document-configurations.destroy', $config) }}"
-                                                method="POST"
-                                                onsubmit="return confirm('¿Estás seguro de eliminar esta configuración?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-error">Eliminar</button>
-                                            </form>
-                                        </li>
+                                        @if($config->user_id === Auth::id() || Auth::user()->isSuperAdmin())
+                                            <li><a href="{{ route('document-configurations.edit', $config) }}">Editar</a></li>
+                                            <li><a href="{{ route('document-configurations.copy', $config) }}">Copiar</a></li>
+                                            <li>
+                                                <button type="button"
+                                                    onclick="document.getElementById('share-config-{{ $config->id }}').showModal()">
+                                                    Compartir
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <form action="{{ route('document-configurations.destroy', $config) }}"
+                                                    method="POST"
+                                                    onsubmit="return confirm('¿Estás seguro de eliminar esta configuración?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-error">Eliminar</button>
+                                                </form>
+                                            </li>
+                                        @endif
                                     </ul>
                                 </div>
                             </div>
@@ -132,9 +144,57 @@
                                     </div>
                                     {{ $config->page_size }} ({{ $config->page_orientation }})
                                 </div>
+                                <div class="flex items-center gap-2">
+                                    @if($config->user_id === Auth::id() || Auth::user()->isSuperAdmin())
+                                        @if($config->shared_users_count > 0)
+                                            <span class="badge badge-success badge-sm">Compartida</span>
+                                        @else
+                                            <span class="badge badge-ghost badge-sm">Privada</span>
+                                        @endif
+                                    @else
+                                        <span class="badge badge-info badge-sm">Compartida contigo</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
+                    @if($config->user_id === Auth::id() || Auth::user()->isSuperAdmin())
+                        <dialog id="share-config-{{ $config->id }}" class="modal">
+                            <div class="modal-box">
+                                <h3 class="font-bold text-lg mb-2">Compartir configuración</h3>
+                                <p class="text-sm opacity-70 mb-4">
+                                    Selecciona usuarios que podrán ver esta plantilla.
+                                </p>
+                                <form method="POST" action="{{ route('document-configurations.share', $config) }}"
+                                    class="space-y-4">
+                                    @csrf
+                                    @method('PUT')
+                                    <div class="max-h-64 overflow-y-auto space-y-2 border border-base-200 rounded-lg p-3">
+                                        @forelse($shareableUsers as $user)
+                                            <label class="flex items-center gap-2 text-sm">
+                                                <input type="checkbox" name="shared_users[]"
+                                                    value="{{ $user->id }}"
+                                                    class="checkbox checkbox-primary checkbox-xs"
+                                                    {{ $config->sharedUsers->contains($user->id) ? 'checked' : '' }} />
+                                                <span>{{ $user->name }}</span>
+                                            </label>
+                                        @empty
+                                            <div class="text-xs opacity-60">
+                                                No hay usuarios disponibles para compartir.
+                                            </div>
+                                        @endforelse
+                                    </div>
+                                    <div class="flex justify-end gap-2">
+                                        <button type="button" class="btn btn-ghost"
+                                            onclick="document.getElementById('share-config-{{ $config->id }}').close()">
+                                            Cancelar
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">Guardar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </dialog>
+                    @endif
                 @endforeach
             </div>
 

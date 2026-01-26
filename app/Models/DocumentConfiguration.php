@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Builder;
 
 class DocumentConfiguration extends Model
 {
@@ -12,6 +13,7 @@ class DocumentConfiguration extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'user_id',
         'event_id',
         'document_type',
         'document_name',
@@ -62,7 +64,62 @@ class DocumentConfiguration extends Model
 
     public function event()
     {
-        return $this->belongsTo(Event::class);
+        return $this->belongsTo(Event::class)->withTrashed();
+    }
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'user_id')->withTrashed();
+    }
+
+    public function sharedUsers()
+    {
+        return $this->belongsToMany(User::class, 'document_configuration_user')
+            ->withTimestamps()
+            ->withPivot('shared_by');
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isSuperAdmin()) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $builder) use ($user) {
+            $builder->where('user_id', $user->id)
+                ->orWhereHas('sharedUsers', function (Builder $shared) use ($user) {
+                    $shared->where('users.id', $user->id);
+                })
+                ->orWhereHas('event', function (Builder $event) use ($user) {
+                    $event->where(function (Builder $eventQuery) use ($user) {
+                        $eventQuery->where('user_id', $user->id)
+                            ->orWhereHas('sharedUsers', function (Builder $shared) use ($user) {
+                                $shared->where('users.id', $user->id);
+                            });
+                    });
+                });
+        });
+    }
+
+    public function canBeViewedBy(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->user_id === $user->id) {
+            return true;
+        }
+
+        if ($this->sharedUsers()->where('users.id', $user->id)->exists()) {
+            return true;
+        }
+
+        if ($this->event && $this->event->canBeViewedBy($user)) {
+            return true;
+        }
+
+        return false;
     }
 
     protected $casts = [

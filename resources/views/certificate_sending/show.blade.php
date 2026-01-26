@@ -17,6 +17,11 @@
     @endphp
 
     <div x-data='sendingStatus(@json($statusPayload))' class="space-y-6">
+        @if(!$isOwner)
+            <div class="alert alert-info text-sm">
+                Acceso compartido: solo puedes ver las constancias que te compartieron.
+            </div>
+        @endif
         <div class="mb-2">
             <a href="{{ route('certificate-sending.index') }}" class="btn btn-ghost gap-2 pl-0 hover:bg-transparent">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
@@ -77,75 +82,77 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left Column: Status & Stats -->
             <div class="lg:col-span-2 space-y-6">
-                <!-- Progress Card -->
-                <div class="card bg-base-100 shadow-md">
-                    <div class="card-body">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="card-title text-sm">Progreso</h3>
-                            <span class="text-xs opacity-70" x-text="lastUpdatedLabel"></span>
-                        </div>
-                        <progress class="progress progress-primary w-full h-3" :value="processed"
-                            :max="total"></progress>
-                        <div class="flex justify-between text-sm mt-2 font-medium">
-                            <span x-text="`${progress}%`"></span>
-                            <span x-text="`${processed} de ${total} registros`"></span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Stats Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div class="stats shadow bg-base-100 border-l-4 border-blue-500">
-                        <div class="stat px-4 py-3">
-                            <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-70">Total</div>
-                            <div class="stat-value text-2xl font-extrabold text-base-content" x-text="total"></div>
-                            <div class="stat-desc text-xs mt-1 opacity-70">Registros procesados</div>
-                        </div>
-                    </div>
-
-                    <div class="stats shadow bg-base-100 border-l-4 border-green-500">
-                        <div class="stat px-4 py-3">
-                            <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-70">Exitosos</div>
-                            <div class="stat-value text-2xl font-extrabold text-success" x-text="success"></div>
-                            <div class="stat-desc text-xs mt-1 opacity-70">Correos enviados</div>
-                        </div>
-                    </div>
-
-                    <div class="stats shadow bg-base-100 border-l-4 border-red-500">
-                        <div class="stat px-4 py-3">
-                            <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-70">Fallidos</div>
-                            <div class="stat-value text-2xl font-extrabold text-error" x-text="failed"></div>
-                            <div class="stat-desc text-xs mt-1 opacity-70">Errores encontrados</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                @if($history->csv_file_path)
-                    <div class="card bg-base-100 shadow-sm border border-base-200">
-                        <div class="card-body p-4 flex-row items-center gap-4">
-                            <div class="p-3 bg-base-200 rounded-lg">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 opacity-70" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
+                @if($isOwner)
+                    <!-- Progress Card -->
+                    <div class="card bg-base-100 shadow-md">
+                        <div class="card-body">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="card-title text-sm">Progreso</h3>
+                                <span class="text-xs opacity-70" x-text="lastUpdatedLabel"></span>
                             </div>
-                            <div class="flex-1">
-                                <h3 class="font-bold">Archivo de Origen</h3>
-                                <p class="text-xs opacity-70">CSV utilizado para este envío</p>
+                            <progress class="progress progress-primary w-full h-3" :value="processed"
+                                :max="total"></progress>
+                            <div class="flex justify-between text-sm mt-2 font-medium">
+                                <span x-text="`${progress}%`"></span>
+                                <span x-text="`${processed} de ${total} registros`"></span>
                             </div>
-                            <a href="{{ asset('storage/' . $history->csv_file_path) }}" target="_blank"
-                                class="btn btn-primary btn-sm gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                                Descargar CSV
-                            </a>
                         </div>
                     </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="stats shadow bg-base-100 border-l-4 border-blue-500">
+                            <div class="stat px-4 py-3">
+                                <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-70">Total</div>
+                                <div class="stat-value text-2xl font-extrabold text-base-content" x-text="total"></div>
+                                <div class="stat-desc text-xs mt-1 opacity-70">Registros procesados</div>
+                            </div>
+                        </div>
+
+                        <div class="stats shadow bg-base-100 border-l-4 border-green-500">
+                            <div class="stat px-4 py-3">
+                                <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-70">Exitosos</div>
+                                <div class="stat-value text-2xl font-extrabold text-success" x-text="success"></div>
+                                <div class="stat-desc text-xs mt-1 opacity-70">Correos enviados</div>
+                            </div>
+                        </div>
+
+                        <div class="stats shadow bg-base-100 border-l-4 border-red-500">
+                            <div class="stat px-4 py-3">
+                                <div class="stat-title text-xs uppercase font-bold tracking-wider opacity-70">Fallidos</div>
+                                <div class="stat-value text-2xl font-extrabold text-error" x-text="failed"></div>
+                                <div class="stat-desc text-xs mt-1 opacity-70">Errores encontrados</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    @if($history->csv_file_path)
+                        <div class="card bg-base-100 shadow-sm border border-base-200">
+                            <div class="card-body p-4 flex-row items-center gap-4">
+                                <div class="p-3 bg-base-200 rounded-lg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 opacity-70" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-bold">Archivo de Origen</h3>
+                                    <p class="text-xs opacity-70">CSV utilizado para este envío</p>
+                                </div>
+                                <a href="{{ route('certificate-sending.csv', $history) }}"
+                                    class="btn btn-primary btn-sm gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                    Descargar CSV
+                                </a>
+                            </div>
+                        </div>
+                    @endif
                 @endif
 
                 <!-- Certificates List -->
@@ -169,6 +176,7 @@
                                             <th>Folio</th>
                                             <th>Correo</th>
                                             <th>UUID</th>
+                                            <th>Compartida</th>
                                             <th>Acciones</th>
                                         </tr>
                                     </thead>
@@ -178,12 +186,31 @@
                                                 <td class="font-mono">{{ $certificate->folio ?? 'N/A' }}</td>
                                                 <td>{{ $certificate->recipient_email ?? 'N/A' }}</td>
                                                 <td class="text-xs opacity-60">{{ $certificate->uuid }}</td>
+                                                <td>
+                                                    @if($isOwner)
+                                                        @if($certificate->shared_users_count > 0)
+                                                            <span class="badge badge-success badge-xs">Compartida</span>
+                                                        @else
+                                                            <span class="badge badge-ghost badge-xs">Privada</span>
+                                                        @endif
+                                                    @else
+                                                        <span class="badge badge-info badge-xs">Compartida contigo</span>
+                                                    @endif
+                                                </td>
                                                 <td class="space-x-2">
                                                     <a href="{{ route('certificates.verify', $certificate->uuid) }}"
                                                         target="_blank" class="btn btn-ghost btn-xs">Verificar</a>
-                                                    <button type="button" class="btn btn-outline btn-xs"
-                                                        @click="$refs.resendModal.showModal()">Reenviar</button>
-                                                    <dialog x-ref="resendModal" class="modal">
+                                                    @if($isOwner)
+                                                        <button type="button" class="btn btn-outline btn-xs"
+                                                            onclick="document.getElementById('resend-modal-{{ $certificate->id }}').showModal()">
+                                                            Reenviar
+                                                        </button>
+                                                        <button type="button" class="btn btn-ghost btn-xs"
+                                                            onclick="document.getElementById('share-modal-{{ $certificate->id }}').showModal()">
+                                                            Compartir
+                                                        </button>
+                                                    @endif
+                                                    <dialog id="resend-modal-{{ $certificate->id }}" class="modal">
                                                         <div class="modal-box">
                                                             <h3 class="font-bold text-lg mb-2">Reenviar constancia</h3>
                                                             <p class="text-sm opacity-70 mb-4">
@@ -223,12 +250,52 @@
                                                                 @endif
                                                                 <div class="flex justify-end gap-2">
                                                                     <button type="button" class="btn btn-ghost"
-                                                                        @click="$refs.resendModal.close()">Cancelar</button>
+                                                                        onclick="document.getElementById('resend-modal-{{ $certificate->id }}').close()">
+                                                                        Cancelar
+                                                                    </button>
                                                                     <button type="submit" class="btn btn-primary">Reenviar</button>
                                                                 </div>
                                                             </form>
                                                         </div>
                                                     </dialog>
+                                                    @if($isOwner)
+                                                        <dialog id="share-modal-{{ $certificate->id }}" class="modal">
+                                                            <div class="modal-box">
+                                                                <h3 class="font-bold text-lg mb-2">Compartir constancia</h3>
+                                                                <p class="text-sm opacity-70 mb-4">
+                                                                    Selecciona los usuarios que podrán ver esta constancia.
+                                                                </p>
+                                                                <form method="POST"
+                                                                    action="{{ route('certificates.share', $certificate) }}"
+                                                                    class="space-y-4">
+                                                                    @csrf
+                                                                    @method('PUT')
+                                                                    <div class="max-h-64 overflow-y-auto space-y-2 border border-base-200 rounded-lg p-3">
+                                                                        @forelse($shareableUsers as $user)
+                                                                            <label class="flex items-center gap-2 text-sm">
+                                                                                <input type="checkbox" name="shared_users[]"
+                                                                                    value="{{ $user->id }}"
+                                                                                    class="checkbox checkbox-primary checkbox-xs"
+                                                                                    {{ $certificate->sharedUsers->contains($user->id) ? 'checked' : '' }} />
+                                                                                <span>{{ $user->name }}</span>
+                                                                            </label>
+                                                                        @empty
+                                                                            <div class="text-xs opacity-60">
+                                                                                No hay usuarios disponibles para compartir.
+                                                                            </div>
+                                                                        @endforelse
+                                                                    </div>
+                                                                    <div class="flex justify-end gap-2">
+                                                                        <button type="button" class="btn btn-ghost"
+                                                                            onclick="document.getElementById('share-modal-{{ $certificate->id }}').close()">
+                                                                            Cancelar
+                                                                        </button>
+                                                                        <button type="submit" class="btn btn-primary">Guardar</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </dialog>
+                                                    @endif
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -243,40 +310,42 @@
                     </div>
                 </div>
 
-                <!-- Error Log -->
-                <div class="card bg-base-100 shadow-xl border border-error/20" x-show="errors.length"
-                    style="display: none;">
-                    <div class="card-body">
-                        <h2 class="card-title text-error text-lg mb-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            Registro de Errores
-                        </h2>
-                        <div class="overflow-x-auto max-h-60">
-                            <table class="table table-zebra table-compact w-full text-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Email</th>
-                                        <th>Descripci&oacute;n del Error</th>
-                                        <th>Hora</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <template x-for="error in errors" :key="error.email + error.time">
+                @if($isOwner)
+                    <!-- Error Log -->
+                    <div class="card bg-base-100 shadow-xl border border-error/20" x-show="errors.length"
+                        style="display: none;">
+                        <div class="card-body">
+                            <h2 class="card-title text-error text-lg mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                Registro de Errores
+                            </h2>
+                            <div class="overflow-x-auto max-h-60">
+                                <table class="table table-zebra table-compact w-full text-sm">
+                                    <thead>
                                         <tr>
-                                            <td class="font-mono font-bold" x-text="error.email ?? 'N/A'"></td>
-                                            <td class="text-error" x-text="error.error ?? 'Error desconocido'"></td>
-                                            <td class="opacity-60 whitespace-nowrap" x-text="error.time ?? ''"></td>
+                                            <th>Email</th>
+                                            <th>Descripci&oacute;n del Error</th>
+                                            <th>Hora</th>
                                         </tr>
-                                    </template>
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="error in errors" :key="error.email + error.time">
+                                            <tr>
+                                                <td class="font-mono font-bold" x-text="error.email ?? 'N/A'"></td>
+                                                <td class="text-error" x-text="error.error ?? 'Error desconocido'"></td>
+                                                <td class="opacity-60 whitespace-nowrap" x-text="error.time ?? ''"></td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endif
             </div>
 
             <!-- Right Column: Document Preview -->
@@ -295,7 +364,7 @@
                             <p class="text-xs opacity-70">Diseño base de la constancia a enviar</p>
                         </div>
                         <div class="bg-base-200 flex-1 flex items-center justify-center relative min-h-[400px]">
-                            @if($history->documentConfiguration)
+                            @if($isOwner && $history->documentConfiguration)
                                 <iframe
                                     src="{{ route('document-configurations.stream-pdf', $history->documentConfiguration) }}#toolbar=0&navpanes=0&scrollbar=0&view=Fit"
                                     class="absolute inset-0 w-full h-full" frameborder="0"></iframe>
@@ -306,7 +375,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <p>Vista previa no disponible para este registro hist&oacute;rico</p>
+                                    <p>Vista previa disponible solo para el creador</p>
                                 </div>
                             @endif
                         </div>

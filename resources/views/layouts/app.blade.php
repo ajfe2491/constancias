@@ -40,7 +40,7 @@
                         <div class="flex items-center gap-2">
                             <div class="dropdown dropdown-end">
                                 <label tabindex="0" class="btn btn-ghost btn-circle avatar placeholder">
-                                    <div class="bg-neutral-focus text-neutral-content rounded-full w-10">
+                                    <div class="bg-primary text-primary-content rounded-full w-10 ring-2 ring-base-300/40">
                                         <span class="text-xl">{{ substr(Auth::user()->name, 0, 1) }}</span>
                                     </div>
                                 </label>

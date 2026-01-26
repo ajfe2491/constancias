@@ -13,6 +13,11 @@ class CertificateResendController extends Controller
 {
     public function store(Request $request, Certificate $certificate): RedirectResponse
     {
+        $user = $request->user();
+        if (!$user || (!$user->isSuperAdmin() && !$certificate->canBeViewedBy($user))) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'data' => ['nullable', 'array'],

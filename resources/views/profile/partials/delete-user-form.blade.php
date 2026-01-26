@@ -9,12 +9,19 @@
         </p>
     </header>
 
-    <x-danger-button
-        x-data=""
-        x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-    >{{ __('Delete Account') }}</x-danger-button>
+    @if(auth()->user() && auth()->user()->name === 'admin@siice.com')
+        <div class="alert alert-warning text-sm">
+            Este usuario es Super Admin y no puede eliminarse.
+        </div>
+    @else
+        <x-danger-button
+            x-data=""
+            x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
+        >{{ __('Delete Account') }}</x-danger-button>
+    @endif
 
-    <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
+    @if(!auth()->user() || auth()->user()->name !== 'admin@siice.com')
+        <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
         <form method="post" action="{{ route('profile.destroy') }}" class="p-6">
             @csrf
             @method('delete')
@@ -51,5 +58,6 @@
                 </x-danger-button>
             </div>
         </form>
-    </x-modal>
+        </x-modal>
+    @endif
 </section>

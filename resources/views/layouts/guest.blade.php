@@ -17,9 +17,17 @@
 </head>
 
 <body
-    class=" font-sans antialiased bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 {{ request()->routeIs('login') ? 'login-animated-bg' : '' }}">
+    class="font-sans antialiased bg-base-100 text-base-content {{ request()->routeIs('login') ? 'login-animated-bg' : '' }}">
+    @if(request()->routeIs('login'))
+        <button type="button" data-theme-toggle
+        style=" right:10px;"
+            class="fixed top-4 right-6 left-auto z-50 inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-md border border-base-300 bg-base-100 text-base-content hover:bg-base-200 shadow-sm transition-colors cursor-pointer">
+            <span data-theme-label="dark">Modo oscuro</span>
+            <span data-theme-label="light" class="hidden">Modo claro</span>
+        </button>
+    @endif
     <div
-        class="min-h-screen flex flex-col text-gray-900 dark:text-gray-100 {{ request()->routeIs('login') ? 'bg-transparent dark:bg-transparent' : 'bg-gray-100 dark:bg-gray-900' }}">
+        class="min-h-screen flex flex-col {{ request()->routeIs('login') ? 'bg-transparent' : 'bg-base-100' }}">
         
         <!-- Main Content (Centers in remaining space) -->
         <div class="flex-1 flex flex-col justify-center items-center relative z-0"
@@ -46,7 +54,7 @@
             </div>
 
             <div
-                class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white dark:bg-gray-800 shadow-md overflow-hidden sm:rounded-lg">
+                class="w-full sm:max-w-md mt-6 px-6 py-4 bg-base-100 shadow-md overflow-hidden sm:rounded-lg">
                 {{ $slot }}
             </div>
         </div>

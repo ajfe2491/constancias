@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use chillerlan\QRCode\QRCode;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class DocumentConfigurationController extends Controller
 {
@@ -17,7 +19,9 @@ class DocumentConfigurationController extends Controller
     public function index(Request $request)
     {
         // Group by event (event_id IS NULL puts generics at the end), then by latest creation
-        $query = DocumentConfiguration::with('event')
+        $query = DocumentConfiguration::with('event', 'sharedUsers')
+            ->withCount('sharedUsers')
+            ->visibleTo(Auth::user())
             ->orderByRaw('event_id IS NULL, event_id DESC, created_at DESC');
 
         if ($request->has('search')) {
@@ -33,7 +37,11 @@ class DocumentConfigurationController extends Controller
         }
 
         $configurations = $query->paginate(10);
-        return view('document_configurations.index', compact('configurations'));
+        $shareableUsers = \App\Models\User::whereNull('deleted_at')
+            ->where('id', '!=', Auth::id())
+            ->orderBy('name')
+            ->get();
+        return view('document_configurations.index', compact('configurations', 'shareableUsers'));
     }
 
     /**
@@ -41,7 +49,11 @@ class DocumentConfigurationController extends Controller
      */
     public function create(Request $request)
     {
-        $events = Event::where('is_active', true)->latest()->get();
+        $eventsQuery = Event::where('is_active', true)->latest();
+        if (!Auth::user()->isSuperAdmin()) {
+            $eventsQuery->where('user_id', Auth::id());
+        }
+        $events = $eventsQuery->get();
         $preselectedEventId = $request->query('event_id');
         return view('document_configurations.create', compact('events', 'preselectedEventId'));
     }
@@ -51,7 +63,12 @@ class DocumentConfigurationController extends Controller
      */
     public function copy(DocumentConfiguration $documentConfiguration)
     {
-        $events = Event::where('is_active', true)->latest()->get();
+        $this->ensureOwner($documentConfiguration);
+        $eventsQuery = Event::where('is_active', true)->latest();
+        if (!Auth::user()->isSuperAdmin()) {
+            $eventsQuery->where('user_id', Auth::id());
+        }
+        $events = $eventsQuery->get();
         return view('document_configurations.copy', compact('documentConfiguration', 'events'));
     }
 
@@ -60,11 +77,20 @@ class DocumentConfigurationController extends Controller
      */
     public function storeCopy(Request $request, DocumentConfiguration $documentConfiguration)
     {
+        $this->ensureOwner($documentConfiguration);
         $validated = $request->validate([
             'document_name' => 'required|string|max:255',
             'document_type' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'event_id' => 'nullable|exists:events,id',
+            'event_id' => [
+                'nullable',
+                Auth::user()->isSuperAdmin()
+                    ? Rule::exists('events', 'id')
+                    : Rule::exists('events', 'id')->where('user_id', Auth::id()),
+            ],
+            'folio_start' => 'required|integer|min:1',
+            'folio_digits' => 'required|integer|min:1|max:20',
+            'folio_year_prefix' => 'boolean',
         ]);
 
         $copy = $documentConfiguration->replicate();
@@ -72,6 +98,7 @@ class DocumentConfigurationController extends Controller
         $copy->document_type = $validated['document_type'];
         $copy->description = $validated['description'] ?? null;
         $copy->event_id = $validated['event_id'] ?? null;
+        $copy->user_id = Auth::id();
 
         if ($documentConfiguration->background_image &&
             Storage::disk('public')->exists($documentConfiguration->background_image)) {
@@ -99,15 +126,30 @@ class DocumentConfigurationController extends Controller
             'document_name' => 'required|string|max:255',
             'document_type' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'event_id' => 'nullable|exists:events,id',
+            'event_id' => [
+                'nullable',
+                Auth::user()->isSuperAdmin()
+                    ? Rule::exists('events', 'id')
+                    : Rule::exists('events', 'id')->where('user_id', Auth::id()),
+            ],
         ]);
 
         // Set defaults
-        $data = $request->only(['document_name', 'document_type', 'description', 'event_id']);
+        $data = $request->only([
+            'document_name',
+            'document_type',
+            'description',
+            'event_id',
+            'folio_start',
+            'folio_digits',
+        ]);
         $data['page_orientation'] = 'L';
         $data['page_size'] = 'Letter';
         $data['is_active'] = true;
         $data['show_qr'] = true;
+        $data['show_folio'] = true;
+        $data['folio_year_prefix'] = $request->has('folio_year_prefix');
+        $data['user_id'] = Auth::id();
 
         $config = DocumentConfiguration::create($data);
 
@@ -120,7 +162,12 @@ class DocumentConfigurationController extends Controller
      */
     public function edit(DocumentConfiguration $documentConfiguration)
     {
-        $events = Event::where('is_active', true)->latest()->get();
+        $this->ensureOwner($documentConfiguration);
+        $eventsQuery = Event::where('is_active', true)->latest();
+        if (!Auth::user()->isSuperAdmin()) {
+            $eventsQuery->where('user_id', Auth::id());
+        }
+        $events = $eventsQuery->get();
         return view('document_configurations.editor', compact('documentConfiguration', 'events'));
     }
 
@@ -129,17 +176,23 @@ class DocumentConfigurationController extends Controller
      */
     public function update(Request $request, DocumentConfiguration $documentConfiguration)
     {
-        $validated = $request->validate([
+        $this->ensureOwner($documentConfiguration);
+        $rules = [
             'document_name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'background_image' => 'nullable|image|max:2048',
+            'background_image' => 'nullable|image|mimes:jpg,jpeg,png|mimetypes:image/jpeg,image/png|max:4096|dimensions:max_width=8000,max_height=8000',
             'page_orientation' => 'required|in:P,L',
             'page_size' => 'required|string',
             'text_elements' => 'nullable|string', // JSON string
             'folio_start' => 'required|integer|min:1',
             'folio_digits' => 'required|integer|min:1|max:20',
             'folio_year_prefix' => 'boolean',
-            'event_id' => 'nullable|exists:events,id',
+            'event_id' => [
+                'nullable',
+                Auth::user()->isSuperAdmin()
+                    ? Rule::exists('events', 'id')
+                    : Rule::exists('events', 'id')->where('user_id', Auth::id()),
+            ],
             'show_folio' => 'boolean',
             'folio_x' => 'nullable|numeric',
             'folio_y' => 'nullable|numeric',
@@ -150,7 +203,15 @@ class DocumentConfigurationController extends Controller
             'folio_alignment' => 'nullable|in:L,C,R',
             'background_fit' => 'boolean',
             'email_message' => 'nullable|string',
-        ]);
+        ];
+        $messages = [
+            'background_image.image' => 'La imagen de fondo debe ser una imagen válida.',
+            'background_image.mimes' => 'La imagen de fondo debe ser JPG o PNG.',
+            'background_image.mimetypes' => 'La imagen de fondo debe ser JPG o PNG.',
+            'background_image.max' => 'La imagen de fondo no debe superar 4 MB.',
+            'background_image.dimensions' => 'La imagen de fondo no debe exceder 8000x8000 px.',
+        ];
+        $validated = $request->validate($rules, $messages);
 
         $data = $request->except('background_image', 'text_elements');
 
@@ -180,9 +241,9 @@ class DocumentConfigurationController extends Controller
         // Asegurar que los campos booleanos se procesen correctamente
         // Para checkboxes estándar, la presencia del campo indica "true".
         $data['is_active'] = $request->has('is_active');
-        $data['show_qr'] = $request->has('show_qr');
+        $data['show_qr'] = true;
         $data['folio_year_prefix'] = $request->has('folio_year_prefix');
-        $data['show_folio'] = $request->has('show_folio');
+        $data['show_folio'] = true;
         $data['enable_live_preview'] = $request->has('enable_live_preview');
         $data['background_fit'] = $request->has('background_fit');
 
@@ -201,6 +262,19 @@ class DocumentConfigurationController extends Controller
      */
     public function preview(Request $request, DocumentConfiguration $documentConfiguration)
     {
+        $this->ensureOwner($documentConfiguration);
+        if ($request->hasFile('background_image')) {
+            $request->validate([
+                'background_image' => 'nullable|image|mimes:jpg,jpeg,png|mimetypes:image/jpeg,image/png|max:4096|dimensions:max_width=8000,max_height=8000',
+            ], [
+                'background_image.image' => 'La imagen de fondo debe ser una imagen válida.',
+                'background_image.mimes' => 'La imagen de fondo debe ser JPG o PNG.',
+                'background_image.mimetypes' => 'La imagen de fondo debe ser JPG o PNG.',
+                'background_image.max' => 'La imagen de fondo no debe superar 4 MB.',
+                'background_image.dimensions' => 'La imagen de fondo no debe exceder 8000x8000 px.',
+            ]);
+        }
+
         $tempConfig = clone $documentConfiguration;
         $data = $request->all();
 
@@ -250,21 +324,8 @@ class DocumentConfigurationController extends Controller
         // If it's an AJAX request with JSON, boolean false is sent.
         // If it's a form submit, unchecked checkboxes are missing.
         // We need to handle both cases.
-        if ($request->isJson()) {
-            $tempConfig->show_qr = $request->boolean('show_qr');
-        } else {
-            // For form submissions, presence means true, absence means false (usually)
-            // But here we are likely using axios to send form data or JSON.
-            // Let's rely on $request->boolean which handles "true", "1", "on" and true.
-            // However, if the key is missing in a form submit, it defaults to false.
-            // But if we are just filling from $data which comes from $request->all(),
-            // and $data['show_qr'] is missing, fill() might not touch it if it's not in the array?
-            // No, fill() only updates keys present in the array.
-            // So if 'show_qr' is missing from $data, it keeps the original value.
-            // We must explicitly set it.
-            $tempConfig->show_qr = $request->has('show_qr') ? $request->boolean('show_qr') : false;
-            $tempConfig->show_folio = $request->has('show_folio') ? $request->boolean('show_folio') : false;
-        }
+        $tempConfig->show_qr = true;
+        $tempConfig->show_folio = true;
 
         // Ensure background dimensions are set if image exists
         if ($tempConfig->background_image) {
@@ -395,6 +456,7 @@ class DocumentConfigurationController extends Controller
      */
     public function streamPdf(DocumentConfiguration $documentConfiguration)
     {
+        $this->ensureCanView($documentConfiguration);
         // Use sample data for placeholders
         $sampleData = $documentConfiguration->sample_data ?? [
             'nombre_participante' => 'Juan Pérez',
@@ -415,6 +477,7 @@ class DocumentConfigurationController extends Controller
      */
     public function backgroundImage(DocumentConfiguration $documentConfiguration)
     {
+        $this->ensureCanView($documentConfiguration);
         if (!$documentConfiguration->background_image) {
             abort(404);
         }
@@ -439,6 +502,7 @@ class DocumentConfigurationController extends Controller
      */
     public function destroy(DocumentConfiguration $documentConfiguration)
     {
+        $this->ensureOwner($documentConfiguration);
         $eventId = $documentConfiguration->event_id;
 
         if ($documentConfiguration->background_image && $documentConfiguration->isForceDeleting()) {
@@ -454,5 +518,20 @@ class DocumentConfigurationController extends Controller
 
         return redirect()->route('document-configurations.index')
             ->with('success', 'Configuración eliminada exitosamente.');
+    }
+
+    private function ensureOwner(DocumentConfiguration $documentConfiguration): void
+    {
+        $user = Auth::user();
+        if (!$user || (!$user->isSuperAdmin() && $documentConfiguration->user_id !== $user->id)) {
+            abort(403);
+        }
+    }
+
+    private function ensureCanView(DocumentConfiguration $documentConfiguration): void
+    {
+        if (!$documentConfiguration->canBeViewedBy(Auth::user())) {
+            abort(403);
+        }
     }
 }

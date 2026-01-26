@@ -13,14 +13,16 @@
                     </svg>
                     Volver
                 </a>
-                <a href="{{ route('events.edit', $event) }}" class="btn btn-primary btn-sm gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    Editar Evento
-                </a>
+                @if($isOwner)
+                    <a href="{{ route('events.edit', $event) }}" class="btn btn-primary btn-sm gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        Editar Evento
+                    </a>
+                @endif
             </div>
         </div>
     </x-slot>
@@ -131,14 +133,17 @@
             <div>
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-bold">Plantillas de Documentos</h3>
-                    <a href="{{ route('document-configurations.create', ['event_id' => $event->id]) }}"
-                        class="btn btn-primary btn-sm gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                        Nueva Plantilla
-                    </a>
+                    @if($isOwner)
+                        <a href="{{ route('document-configurations.create', ['event_id' => $event->id]) }}"
+                            class="btn btn-primary btn-sm gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4" />
+                            </svg>
+                            Nueva Plantilla
+                        </a>
+                    @endif
                 </div>
 
                 @if($event->documentConfigurations->isEmpty())
@@ -154,10 +159,12 @@
                         <p class="opacity-60 mb-6">
                             Crea plantillas específicas para este evento (ej. Constancia de Asistencia, Ponente, etc.)
                         </p>
-                        <a href="{{ route('document-configurations.create', ['event_id' => $event->id]) }}"
-                            class="btn btn-primary btn-sm">
-                            Crear Primera Plantilla
-                        </a>
+                        @if($isOwner)
+                            <a href="{{ route('document-configurations.create', ['event_id' => $event->id]) }}"
+                                class="btn btn-primary btn-sm">
+                                Crear Primera Plantilla
+                            </a>
+                        @endif
                     </div>
                 @else
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -175,10 +182,14 @@
                                     <!-- Overlay on hover -->
                                     <div
                                         class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center backdrop-blur-[2px] opacity-0 group-hover:opacity-100">
-                                        <a href="{{ route('document-configurations.edit', $config) }}"
-                                            class="btn btn-primary btn-xs shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                                            Editar
-                                        </a>
+                                        @if($isOwner)
+                                            <a href="{{ route('document-configurations.edit', $config) }}"
+                                                class="btn btn-primary btn-xs shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                                                Editar
+                                            </a>
+                                        @else
+                                            <span class="text-xs text-white opacity-80">Solo lectura</span>
+                                        @endif
                                     </div>
                                 </figure>
 
@@ -207,19 +218,26 @@
                                             </label>
                                             <ul tabindex="0"
                                                 class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                                                <li>
-                                                    <a href="{{ route('document-configurations.edit', $config) }}">
-                                                        Editar
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <form action="{{ route('document-configurations.destroy', $config) }}"
-                                                        method="POST" onsubmit="return confirm('¿Estás seguro?');">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="text-error">Eliminar</button>
-                                                    </form>
-                                                </li>
+                                                @if($isOwner)
+                                                    <li>
+                                                        <a href="{{ route('document-configurations.edit', $config) }}">
+                                                            Editar
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a href="{{ route('document-configurations.copy', $config) }}">
+                                                            Copiar
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <form action="{{ route('document-configurations.destroy', $config) }}"
+                                                            method="POST" onsubmit="return confirm('¿Estás seguro?');">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="text-error">Eliminar</button>
+                                                        </form>
+                                                    </li>
+                                                @endif
                                             </ul>
                                         </div>
                                     </div>
@@ -236,6 +254,17 @@
                                                 class="badge {{ $config->is_active ? 'badge-success' : 'badge-ghost' }} badge-xs gap-1 mr-2 h-1.5 w-1.5 p-0">
                                             </div>
                                             {{ $config->page_size }} ({{ $config->page_orientation }})
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            @if($isOwner)
+                                                @if($config->shared_users_count > 0)
+                                                    <span class="badge badge-success badge-xs">Compartida</span>
+                                                @else
+                                                    <span class="badge badge-ghost badge-xs">Privada</span>
+                                                @endif
+                                            @else
+                                                <span class="badge badge-info badge-xs">Compartida contigo</span>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>

@@ -33,6 +33,14 @@
             font-size: 16px;
             white-space: pre-line;
         }
+
+        .footer-note {
+            margin-top: 28px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6b7280;
+        }
     </style>
 </head>
 
@@ -48,6 +56,10 @@
             @if(isset($emailMessage) && $emailMessage)
                 {!! nl2br(e($emailMessage)) !!}
             @endif
+        </div>
+        <div class="footer-note">
+            Este correo fue enviado automáticamente. Por favor no responda a este mensaje,
+            ya que esta bandeja no es monitoreada.
         </div>
     </div>
 </body>

@@ -228,12 +228,12 @@
                         <button type="button" @click="activeSection = 'background'"
                             :class="activeSection === 'background' ? 'border-primary text-primary bg-base-100' : 'border-transparent hover:bg-base-200'"
                             class="px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors shrink-0">Fondo</button>
-                        <button type="button" @click="activeSection = 'options'"
-                            :class="activeSection === 'options' ? 'border-primary text-primary bg-base-100' : 'border-transparent hover:bg-base-200'"
-                            class="px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors shrink-0">Opciones</button>
                         <button type="button" @click="activeSection = 'elements'"
                             :class="activeSection === 'elements' ? 'border-primary text-primary bg-base-100' : 'border-transparent hover:bg-base-200'"
                             class="px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors shrink-0">Elementos</button>
+                        <button type="button" @click="activeSection = 'options'"
+                            :class="activeSection === 'options' ? 'border-primary text-primary bg-base-100' : 'border-transparent hover:bg-base-200'"
+                            class="px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors shrink-0">Opciones</button>
                         <!-- Spacer for right arrow -->
                         <div class="w-4 shrink-0"></div>
                     </div>
@@ -245,6 +245,8 @@
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="text_elements" x-model="JSON.stringify(textElements)">
+                    <input type="hidden" name="show_qr" value="1">
+                    <input type="hidden" name="show_folio" value="1">
 
                     <!-- 1. Información Básica -->
                     <div x-show="activeSection === 'basic'" class="space-y-2">
@@ -352,6 +354,11 @@
                             <input type="file" name="background_image"
                                 class="file-input file-input-bordered file-input-xs w-full text-[10px]" accept="image/*"
                                 @change="refreshPreview()" />
+                            <label class="label py-0 mt-1">
+                                <span class="label-text-alt text-[9px] opacity-70">
+                                    JPG/PNG, máx. 4 MB, hasta 8000x8000 px.
+                                </span>
+                            </label>
                             @if($documentConfiguration->background_image)
                                 @php
                                     $bgUrl = '';
@@ -416,162 +423,6 @@
                                     class="input input-bordered input-xs w-full text-[10px]" step="0.1"
                                     x-model="backgroundHeight" :readonly="backgroundFit" :class="{'bg-base-200': backgroundFit}"
                                     @change="refreshPreview()" />
-                            </div>
-                        </div>
-                    </div>
-
-
-
-                    <!-- 5. Opciones -->
-                    <div x-show="activeSection === 'options'" class="space-y-2">
-                        <div class="text-xs font-bold uppercase tracking-wider mb-2 opacity-50">Opciones</div>
-                        <div class="flex justify-between px-1 mb-2">
-                            <div class="form-control">
-                                <label class="label cursor-pointer gap-2 py-0">
-                                    <span class="label-text text-[10px] font-semibold">Mostrar QR</span>
-                                    <input type="checkbox" name="show_qr" value="1"
-                                        class="toggle toggle-primary toggle-xs focus:outline-none" x-model="showQr"
-                                        @change="refreshPreview()" />
-                                </label>
-                            </div>
-                            <div class="form-control">
-                                <label class="label cursor-pointer gap-2 py-0">
-                                    <span class="label-text text-[10px] font-semibold">Activo</span>
-                                    <input type="checkbox" name="is_active" value="1"
-                                        class="toggle toggle-success toggle-xs focus:outline-none" {{ old('is_active', $documentConfiguration->is_active) ? 'checked' : '' }} />
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-control w-full">
-                            <label class="label py-0 mb-1"><span
-                                    class="label-text text-[10px] font-semibold">Mensaje de Correo (Opcional)</span></label>
-                            <textarea name="email_message"
-                                class="textarea textarea-bordered h-24 text-[10px] leading-tight"
-                                placeholder="Mensaje personalizado para el correo electrónico...">{{ old('email_message', $documentConfiguration->email_message) }}</textarea>
-                            <label class="label py-0">
-                                <span class="label-text-alt text-[9px] text-gray-500">Este mensaje aparecerá en el cuerpo del correo enviado a los participantes.</span>
-                            </label>
-                        </div>
-
-                        <!-- QR Configuration Fields -->
-                        <div x-show="document.querySelector('[name=show_qr]').checked"
-                            class="grid grid-cols-2 gap-2 border-t border-base-200 pt-2">
-                            <div class="form-control">
-                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">QR X
-                                        (mm)</span></label>
-                                <input type="number" name="qr_x"
-                                    value="{{ old('qr_x', $documentConfiguration->qr_x ?? 0) }}"
-                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="qrX"
-                                    @change="refreshPreview()" />
-                            </div>
-                            <div class="form-control">
-                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">QR Y
-                                        (mm)</span></label>
-                                <input type="number" name="qr_y"
-                                    value="{{ old('qr_y', $documentConfiguration->qr_y ?? 0) }}"
-                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="qrY"
-                                    @change="refreshPreview()" />
-                            </div>
-                            <div class="form-control">
-                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">QR Ancho
-                                        (mm)</span></label>
-                                <input type="number" name="qr_width"
-                                    value="{{ old('qr_width', $documentConfiguration->qr_width ?? 20) }}"
-                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="qrWidth"
-                                    @change="refreshPreview()" />
-                            </div>
-                            <div class="form-control">
-                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">QR Alto
-                                        (mm)</span></label>
-                                <input type="number" name="qr_height"
-                                    value="{{ old('qr_height', $documentConfiguration->qr_height ?? 20) }}"
-                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="qrHeight"
-                                    @change="refreshPreview()" />
-                            </div>
-                        </div>
-
-                        <!-- Folio Configuration -->
-                        <div class="flex justify-between px-1 mb-2 mt-4 border-t border-base-200 pt-2">
-                            <div class="form-control">
-                                <label class="label cursor-pointer gap-2 py-0">
-                                    <span class="label-text text-[10px] font-semibold">Mostrar Folio Fijo</span>
-                                    <input type="checkbox" name="show_folio" value="1"
-                                        class="toggle toggle-primary toggle-xs focus:outline-none" x-model="showFolio"
-                                        @change="refreshPreview()" />
-                                </label>
-                            </div>
-                        </div>
-
-                        <div x-show="showFolio" class="grid grid-cols-2 gap-2 border-t border-base-200 pt-2">
-                            <div class="form-control">
-                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Folio X
-                                        (mm)</span></label>
-                                <input type="number" name="folio_x"
-                                    value="{{ old('folio_x', $documentConfiguration->folio_x ?? 10) }}"
-                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="folioX"
-                                    @change="refreshPreview()" />
-                            </div>
-                            <div class="form-control">
-                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Folio Y
-                                        (mm)</span></label>
-                                <input type="number" name="folio_y"
-                                    value="{{ old('folio_y', $documentConfiguration->folio_y ?? 10) }}"
-                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="folioY"
-                                    @change="refreshPreview()" />
-                            </div>
-                            <div class="form-control">
-                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Ancho
-                                        (mm)</span></label>
-                                <input type="number" name="folio_width"
-                                    value="{{ old('folio_width', $documentConfiguration->folio_width ?? 50) }}"
-                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="folioWidth"
-                                    @change="refreshPreview()" />
-                            </div>
-                            <div class="form-control">
-                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Alto
-                                        (mm)</span></label>
-                                <input type="number" name="folio_height"
-                                    value="{{ old('folio_height', $documentConfiguration->folio_height ?? 10) }}"
-                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
-                                    x-model="folioHeight"
-                                    @change="refreshPreview()" />
-                            </div>
-                            <div class="form-control">
-                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Tamaño
-                                        Fuente</span></label>
-                                <input type="number" name="folio_font_size"
-                                    value="{{ old('folio_font_size', $documentConfiguration->folio_font_size ?? 12) }}"
-                                    class="input input-bordered input-xs w-full text-[10px]"
-                                    @change="refreshPreview()" />
-                            </div>
-                            <div class="form-control">
-                                <label class="label py-0"><span
-                                        class="label-text text-[9px] opacity-70">Color</span></label>
-                                <input type="color" name="folio_color"
-                                    value="{{ old('folio_color', $documentConfiguration->folio_color ?? '#000000') }}"
-                                    class="input input-bordered input-xs w-full h-5 px-1" @change="refreshPreview()" />
-                            </div>
-                            <div class="form-control col-span-2">
-                                <label class="label py-0"><span
-                                        class="label-text text-[9px] opacity-70">Alineación</span></label>
-                                <select name="folio_alignment"
-                                    class="select select-bordered select-sm w-full text-xs"
-                                    @change="refreshPreview()">
-                                    <option value="L" {{ (old('folio_alignment', $documentConfiguration->folio_alignment) == 'L') ? 'selected' : '' }}>Izquierda
-                                    </option>
-                                    <option value="C" {{ (old('folio_alignment', $documentConfiguration->folio_alignment) == 'C') ? 'selected' : '' }}>Centro
-                                    </option>
-                                    <option value="R" {{ (old('folio_alignment', $documentConfiguration->folio_alignment) == 'R') ? 'selected' : '' }}>Derecha
-                                    </option>
-                                </select>
                             </div>
                         </div>
                     </div>
@@ -725,6 +576,155 @@
                         </div>
                     </div>
 
+                    <!-- 5. Opciones -->
+                    <div x-show="activeSection === 'options'" class="space-y-2">
+                        <div class="text-xs font-bold uppercase tracking-wider mb-2 opacity-50">Opciones</div>
+                        <div class="flex justify-between px-1 mb-2">
+                            <div class="form-control">
+                                <label class="label cursor-default gap-2 py-0">
+                                    <span class="label-text text-[10px] font-semibold">QR obligatorio</span>
+                                    <span class="badge badge-xs badge-success">Activo</span>
+                                </label>
+                            </div>
+                            <div class="form-control">
+                                <label class="label cursor-pointer gap-2 py-0">
+                                    <span class="label-text text-[10px] font-semibold">Activo</span>
+                                    <input type="checkbox" name="is_active" value="1"
+                                        class="toggle toggle-success toggle-xs focus:outline-none" {{ old('is_active', $documentConfiguration->is_active) ? 'checked' : '' }} />
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-control w-full">
+                            <label class="label py-0 mb-1"><span
+                                    class="label-text text-[10px] font-semibold">Mensaje de Correo (Opcional)</span></label>
+                            <textarea name="email_message"
+                                class="textarea textarea-bordered h-24 text-[10px] leading-tight"
+                                placeholder="Mensaje personalizado para el correo electrónico...">{{ old('email_message', $documentConfiguration->email_message) }}</textarea>
+                            <label class="label py-0">
+                                <span class="label-text-alt text-[9px] text-gray-500">Este mensaje aparecerá en el cuerpo del correo enviado a los participantes.</span>
+                            </label>
+                        </div>
+
+                        <!-- QR Configuration Fields -->
+                        <div class="grid grid-cols-2 gap-2 border-t border-base-200 pt-2">
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">QR X
+                                        (mm)</span></label>
+                                <input type="number" name="qr_x"
+                                    value="{{ old('qr_x', $documentConfiguration->qr_x ?? 0) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="qrX"
+                                    @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">QR Y
+                                        (mm)</span></label>
+                                <input type="number" name="qr_y"
+                                    value="{{ old('qr_y', $documentConfiguration->qr_y ?? 0) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="qrY"
+                                    @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">QR Ancho
+                                        (mm)</span></label>
+                                <input type="number" name="qr_width"
+                                    value="{{ old('qr_width', $documentConfiguration->qr_width ?? 20) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="qrWidth"
+                                    @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">QR Alto
+                                        (mm)</span></label>
+                                <input type="number" name="qr_height"
+                                    value="{{ old('qr_height', $documentConfiguration->qr_height ?? 20) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="qrHeight"
+                                    @change="refreshPreview()" />
+                            </div>
+                        </div>
+
+                        <!-- Folio Configuration -->
+                        <div class="flex justify-between px-1 mb-2 mt-4 border-t border-base-200 pt-2">
+                            <div class="form-control">
+                                <label class="label cursor-default gap-2 py-0">
+                                    <span class="label-text text-[10px] font-semibold">Folio obligatorio</span>
+                                    <span class="badge badge-xs badge-success">Activo</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div x-show="showFolio" class="grid grid-cols-2 gap-2 border-t border-base-200 pt-2">
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Folio X
+                                        (mm)</span></label>
+                                <input type="number" name="folio_x"
+                                    value="{{ old('folio_x', $documentConfiguration->folio_x ?? 10) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="folioX"
+                                    @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Folio Y
+                                        (mm)</span></label>
+                                <input type="number" name="folio_y"
+                                    value="{{ old('folio_y', $documentConfiguration->folio_y ?? 10) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="folioY"
+                                    @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Ancho
+                                        (mm)</span></label>
+                                <input type="number" name="folio_width"
+                                    value="{{ old('folio_width', $documentConfiguration->folio_width ?? 50) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="folioWidth"
+                                    @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Alto
+                                        (mm)</span></label>
+                                <input type="number" name="folio_height"
+                                    value="{{ old('folio_height', $documentConfiguration->folio_height ?? 10) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]" step="0.1"
+                                    x-model="folioHeight"
+                                    @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0"><span class="label-text text-[9px] opacity-70">Tamaño
+                                        Fuente</span></label>
+                                <input type="number" name="folio_font_size"
+                                    value="{{ old('folio_font_size', $documentConfiguration->folio_font_size ?? 12) }}"
+                                    class="input input-bordered input-xs w-full text-[10px]"
+                                    @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control">
+                                <label class="label py-0"><span
+                                        class="label-text text-[9px] opacity-70">Color</span></label>
+                                <input type="color" name="folio_color"
+                                    value="{{ old('folio_color', $documentConfiguration->folio_color ?? '#000000') }}"
+                                    class="input input-bordered input-xs w-full h-5 px-1" @change="refreshPreview()" />
+                            </div>
+                            <div class="form-control col-span-2">
+                                <label class="label py-0"><span
+                                        class="label-text text-[9px] opacity-70">Alineación</span></label>
+                                <select name="folio_alignment"
+                                    class="select select-bordered select-sm w-full text-xs"
+                                    @change="refreshPreview()">
+                                    <option value="L" {{ (old('folio_alignment', $documentConfiguration->folio_alignment) == 'L') ? 'selected' : '' }}>Izquierda
+                                    </option>
+                                    <option value="C" {{ (old('folio_alignment', $documentConfiguration->folio_alignment) == 'C') ? 'selected' : '' }}>Centro
+                                    </option>
+                                    <option value="R" {{ (old('folio_alignment', $documentConfiguration->folio_alignment) == 'R') ? 'selected' : '' }}>Derecha
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                 </form>
             </div>
         </div>
@@ -750,8 +750,8 @@
                     activeSection: 'basic',
                     textElements: @json($documentConfiguration->text_elements ?? []),
                     sampleData: @json($documentConfiguration->sample_data ?? ['nombre' => 'Juan Pérez']),
-                    showQr: {{ $documentConfiguration->show_qr ? 'true' : 'false' }},
-                    showFolio: {{ $documentConfiguration->show_folio ? 'true' : 'false' }},
+                    showQr: true,
+                    showFolio: true,
                     enableLivePreview: {{ $documentConfiguration->enable_live_preview ?? true ? 'true' : 'false' }},
                     enableDrag: true,
                     overlayScale: 1,

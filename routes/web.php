@@ -20,6 +20,15 @@ Route::get('/verificar/{uuid}/preview', [CertificateVerificationController::clas
 Route::post('/certificates/{certificate}/resend', [CertificateResendController::class, 'store'])
     ->middleware('auth')
     ->name('certificates.resend');
+Route::put('/certificates/{certificate}/share', [\App\Http\Controllers\CertificateShareController::class, 'update'])
+    ->middleware('auth')
+    ->name('certificates.share');
+Route::put('/events/{event}/share', [\App\Http\Controllers\EventShareController::class, 'update'])
+    ->middleware('auth')
+    ->name('events.share');
+Route::put('/document-configurations/{document_configuration}/share', [\App\Http\Controllers\DocumentConfigurationShareController::class, 'update'])
+    ->middleware('auth')
+    ->name('document-configurations.share');
 
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', 'permission:ver dashboard'])
@@ -40,6 +49,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('certificate-sending', CertificateSendingController::class)
         ->only(['index', 'create', 'store', 'show'])
         ->parameters(['certificate-sending' => 'history']);
+    Route::get('/certificate-sending/{history}/csv', [CertificateSendingController::class, 'downloadCsv'])
+        ->name('certificate-sending.csv');
     Route::get('/certificate-sending/{document_configuration}/template', [CertificateSendingController::class, 'downloadTemplate'])->name('certificate-sending.template');
     Route::post('/events/{event}/toggle-active', [EventController::class, 'toggleActive'])
         ->name('events.toggle-active');

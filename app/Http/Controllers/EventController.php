@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Certificate;
 use App\Models\ConstancyGeneralHistory;
+use Illuminate\Support\Facades\Auth;
 
 class EventController extends Controller
 {
@@ -13,7 +14,10 @@ class EventController extends Controller
      */
     public function index(Request $request)
     {
-        $query = \App\Models\Event::with('documentConfigurations')->latest();
+        $query = \App\Models\Event::with('documentConfigurations', 'sharedUsers')
+            ->withCount('sharedUsers')
+            ->visibleTo(Auth::user())
+            ->latest();
         $showInactive = $request->boolean('show_inactive');
 
         if ($request->has('search')) {
@@ -29,7 +33,11 @@ class EventController extends Controller
         }
 
         $events = $query->get();
-        return view('events.index', compact('events', 'showInactive'));
+        $shareableUsers = \App\Models\User::whereNull('deleted_at')
+            ->where('id', '!=', Auth::id())
+            ->orderBy('name')
+            ->get();
+        return view('events.index', compact('events', 'showInactive', 'shareableUsers'));
     }
 
     /**
@@ -37,17 +45,26 @@ class EventController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'key' => 'required|string|max:20|unique:events,key',
             'type' => 'required|string|max:255',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'description' => 'nullable|string',
-            'logo' => 'nullable|image|max:2048',
-        ]);
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png|mimetypes:image/jpeg,image/png|max:2048|dimensions:max_width=6000,max_height=6000',
+        ];
+        $messages = [
+            'logo.image' => 'El logotipo debe ser una imagen válida.',
+            'logo.mimes' => 'El logotipo debe ser JPG o PNG.',
+            'logo.mimetypes' => 'El logotipo debe ser JPG o PNG.',
+            'logo.max' => 'El logotipo no debe superar 2 MB.',
+            'logo.dimensions' => 'El logotipo no debe exceder 6000x6000 px.',
+        ];
+        $validated = $request->validate($rules, $messages);
 
         $validated['is_active'] = $request->has('is_active');
+        $validated['user_id'] = Auth::id();
 
         if ($request->hasFile('logo')) {
             $validated['logo'] = $request->file('logo')->store('event_logos', 'public');
@@ -64,7 +81,14 @@ class EventController extends Controller
      */
     public function show(\App\Models\Event $event)
     {
-        $event->load('documentConfigurations');
+        if (!$event->canBeViewedBy(Auth::user())) {
+            abort(403);
+        }
+
+        $event->load(['documentConfigurations' => function ($query) {
+            $query->withCount('sharedUsers')->with('sharedUsers');
+        }]);
+        $isOwner = $event->user_id === Auth::id() || Auth::user()->isSuperAdmin();
         $configIds = $event->documentConfigurations->pluck('id');
         $batchBase = ConstancyGeneralHistory::whereIn('document_configuration_id', $configIds);
         $lastBatch = (clone $batchBase)->latest()->first();
@@ -82,6 +106,7 @@ class EventController extends Controller
             'totalSuccessful' => (clone $batchBase)->sum('procesados_exitosos'),
             'lastBatchAt' => $lastBatch?->created_at,
             'eventDurationDays' => $eventDurationDays,
+            'isOwner' => $isOwner,
         ]);
     }
 
@@ -90,6 +115,7 @@ class EventController extends Controller
      */
     public function edit(\App\Models\Event $event)
     {
+        $this->ensureOwner($event);
         return view('events.edit', compact('event'));
     }
 
@@ -98,15 +124,24 @@ class EventController extends Controller
      */
     public function update(Request $request, \App\Models\Event $event)
     {
-        $validated = $request->validate([
+        $this->ensureOwner($event);
+        $rules = [
             'name' => 'required|string|max:255',
             'key' => 'required|string|max:20|unique:events,key,' . $event->id,
             'type' => 'required|string|max:255',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'description' => 'nullable|string',
-            'logo' => 'nullable|image|max:2048',
-        ]);
+            'logo' => 'nullable|image|mimes:jpg,jpeg,png|mimetypes:image/jpeg,image/png|max:2048|dimensions:max_width=6000,max_height=6000',
+        ];
+        $messages = [
+            'logo.image' => 'El logotipo debe ser una imagen válida.',
+            'logo.mimes' => 'El logotipo debe ser JPG o PNG.',
+            'logo.mimetypes' => 'El logotipo debe ser JPG o PNG.',
+            'logo.max' => 'El logotipo no debe superar 2 MB.',
+            'logo.dimensions' => 'El logotipo no debe exceder 6000x6000 px.',
+        ];
+        $validated = $request->validate($rules, $messages);
 
         $validated['is_active'] = $request->has('is_active');
 
@@ -128,7 +163,8 @@ class EventController extends Controller
      */
     public function destroy(\App\Models\Event $event)
     {
-        if ($event->logo) {
+        $this->ensureOwner($event);
+        if ($event->logo && method_exists($event, 'isForceDeleting') && $event->isForceDeleting()) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($event->logo);
         }
         $event->delete();
@@ -141,11 +177,20 @@ class EventController extends Controller
      */
     public function toggleActive(\App\Models\Event $event)
     {
+        $this->ensureOwner($event);
         $event->is_active = !$event->is_active;
         $event->save();
 
         return back()->with('success', $event->is_active
             ? 'Evento activado correctamente.'
             : 'Evento inactivado correctamente.');
+    }
+
+    private function ensureOwner(\App\Models\Event $event): void
+    {
+        $user = Auth::user();
+        if (!$user || (!$user->isSuperAdmin() && $event->user_id !== $user->id)) {
+            abort(403);
+        }
     }
 }

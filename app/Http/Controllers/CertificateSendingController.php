@@ -17,11 +17,30 @@ class CertificateSendingController extends Controller
      */
     public function index()
     {
-        $history = ConstancyGeneralHistory::with('user')
-            ->latest()
-            ->paginate(10);
+        $historyQuery = ConstancyGeneralHistory::with('user')
+            ->latest();
+        if (!Auth::user()->isSuperAdmin()) {
+            $historyQuery->where('user_id', Auth::id());
+        }
+        $history = $historyQuery->paginate(10);
 
-        return view('certificate_sending.index', compact('history'));
+        $sharedCertificates = collect();
+        $sharedCertificatesCount = 0;
+        if (!Auth::user()->isSuperAdmin()) {
+            $sharedCertificates = \App\Models\Certificate::with(['history.user', 'documentConfiguration.event'])
+                ->whereHas('sharedUsers', function ($query) {
+                    $query->where('users.id', Auth::id());
+                })
+                ->latest()
+                ->take(10)
+                ->get();
+
+            $sharedCertificatesCount = \App\Models\Certificate::whereHas('sharedUsers', function ($query) {
+                $query->where('users.id', Auth::id());
+            })->count();
+        }
+
+        return view('certificate_sending.index', compact('history', 'sharedCertificates', 'sharedCertificatesCount'));
     }
 
     /**
@@ -30,6 +49,7 @@ class CertificateSendingController extends Controller
     public function create()
     {
         $configurations = DocumentConfiguration::where('is_active', true)
+            ->visibleTo(Auth::user())
             ->with('event')
             ->latest()
             ->get();
@@ -64,12 +84,35 @@ class CertificateSendingController extends Controller
         if ($mode === 'single') {
             $baseRules['email'] = 'required|email';
         } else {
-            $baseRules['csv_file'] = 'required|file|mimes:csv,txt|max:2048';
+            $baseRules['csv_file'] = [
+                'required',
+                'file',
+                'max:2048',
+                'mimes:csv,txt',
+                'mimetypes:text/plain,text/csv,application/csv,application/vnd.ms-excel',
+                function ($attribute, $value, $fail) {
+                    $extension = strtolower($value->getClientOriginalExtension());
+                    if (!in_array($extension, ['csv', 'txt'], true)) {
+                        $fail('El archivo debe ser CSV.');
+                        return;
+                    }
+
+                    $handle = @fopen($value->getRealPath(), 'r');
+                    if ($handle) {
+                        $sample = fread($handle, 2048);
+                        fclose($handle);
+                        if (stripos($sample, '<?php') !== false || stripos($sample, '<script') !== false) {
+                            $fail('El archivo CSV contiene contenido no permitido.');
+                        }
+                    }
+                },
+            ];
         }
 
         $request->validate($baseRules);
 
-        $config = DocumentConfiguration::findOrFail($request->document_configuration_id);
+        $config = DocumentConfiguration::visibleTo(Auth::user())
+            ->findOrFail($request->document_configuration_id);
 
         if ($mode === 'single') {
             $placeholders = collect($this->extractPlaceholders($config))
@@ -103,10 +146,10 @@ class CertificateSendingController extends Controller
                 ->with('success', 'Envío individual iniciado. Actualiza esta página para ver el progreso.');
         }
 
-        $path = $request->file('csv_file')->store('csv_uploads', 'public');
+        $path = $request->file('csv_file')->store('csv_uploads');
 
         // Parse CSV
-        $file = fopen(storage_path('app/public/' . $path), 'r');
+        $file = fopen(storage_path('app/' . $path), 'r');
         $header = fgetcsv($file);
 
         // Normalize headers: lowercase, trim, remove BOM if present
@@ -114,10 +157,36 @@ class CertificateSendingController extends Controller
             return trim(strtolower(preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $h)));
         }, $header);
 
+        $allowedHeaders = $this->extractPlaceholders($config);
+        if (empty($header) || empty($allowedHeaders)) {
+            fclose($file);
+            return back()->withErrors(['csv_file' => 'El archivo CSV no tiene encabezados válidos.']);
+        }
+
+        if (!in_array('email', $header, true)) {
+            fclose($file);
+            return back()->withErrors(['csv_file' => 'El archivo CSV debe incluir la columna email.']);
+        }
+
+        $extraHeaders = array_diff($header, $allowedHeaders);
+        if (!empty($extraHeaders)) {
+            fclose($file);
+            return back()->withErrors([
+                'csv_file' => 'El archivo CSV contiene columnas no permitidas: ' . implode(', ', $extraHeaders),
+            ]);
+        }
+
         $rows = [];
+        $maxRows = 5000;
         while (($row = fgetcsv($file)) !== false) {
             if (count($row) === count($header)) {
                 $rows[] = array_combine($header, $row);
+            }
+            if (count($rows) > $maxRows) {
+                fclose($file);
+                return back()->withErrors([
+                    'csv_file' => 'El archivo CSV excede el límite de registros permitido (' . $maxRows . ').',
+                ]);
             }
         }
         fclose($file);
@@ -158,15 +227,73 @@ class CertificateSendingController extends Controller
      */
     public function show(ConstancyGeneralHistory $history)
     {
-        $history->load('documentConfiguration.event');
-        $certificates = \App\Models\Certificate::where('history_id', $history->id)
-            ->orderBy('id')
-            ->paginate(25);
-        return view('certificate_sending.show', compact('history', 'certificates'));
+        $history->load('documentConfiguration.event', 'user');
+
+        $isOwner = $history->user_id === Auth::id() || Auth::user()->isSuperAdmin();
+
+        if (!$isOwner) {
+            $hasSharedCertificates = \App\Models\Certificate::where('history_id', $history->id)
+                ->whereHas('sharedUsers', function ($query) {
+                    $query->where('users.id', Auth::id());
+                })
+                ->exists();
+
+            if (!$hasSharedCertificates && !Auth::user()->isSuperAdmin()) {
+                abort(403);
+            }
+        }
+
+        $certificatesQuery = \App\Models\Certificate::where('history_id', $history->id)
+            ->withCount('sharedUsers')
+            ->orderBy('id');
+
+        if ($isOwner) {
+            $certificatesQuery->with('sharedUsers');
+        } else {
+            $certificatesQuery->whereHas('sharedUsers', function ($query) {
+                $query->where('users.id', Auth::id());
+            });
+        }
+
+        $certificates = $certificatesQuery->paginate(25);
+
+        $shareableUsers = [];
+        if ($isOwner) {
+            $shareableUsers = \App\Models\User::whereNull('deleted_at')
+                ->where('id', '!=', Auth::id())
+                ->orderBy('name')
+                ->get();
+        }
+
+        return view('certificate_sending.show', compact('history', 'certificates', 'isOwner', 'shareableUsers'));
+    }
+
+    public function downloadCsv(ConstancyGeneralHistory $history)
+    {
+        if ($history->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
+            abort(403);
+        }
+
+        if (!$history->csv_file_path) {
+            abort(404);
+        }
+
+        $path = storage_path('app/' . $history->csv_file_path);
+        if (!file_exists($path)) {
+            abort(404);
+        }
+
+        return response()->download($path, 'envio_' . $history->id . '.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
     public function downloadTemplate(DocumentConfiguration $documentConfiguration)
     {
+        if (!$documentConfiguration->canBeViewedBy(Auth::user())) {
+            abort(403);
+        }
+
         $headers = $this->extractPlaceholders($documentConfiguration);
 
         // Also check for folio if it's not auto-generated (though usually it is)
@@ -194,6 +321,10 @@ class CertificateSendingController extends Controller
 
     public function status(ConstancyGeneralHistory $history)
     {
+        if ($history->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
+            abort(403);
+        }
+
         $history->refresh();
 
         return response()->json([

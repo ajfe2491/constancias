@@ -16,8 +16,8 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="font-sans antialiased bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-    <div class="min-h-screen flex flex-col bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+<body class="font-sans antialiased bg-base-100 text-base-content">
+    <div class="min-h-screen flex flex-col bg-base-100 text-base-content">
         <!-- Header (Static, full width) -->
         <div class="w-full px-6 pt-6 relative z-30"
             style="position: sticky; top: 0; z-index: 9999;">

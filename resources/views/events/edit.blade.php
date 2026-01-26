@@ -24,7 +24,9 @@
                         @endif
                         <input type="file" name="logo" class="file-input file-input-bordered w-full" accept="image/*" />
                         <label class="label">
-                            <span class="label-text-alt text-gray-500">Opcional. Se mostrará en los correos electrónicos y en la vista del evento.</span>
+                            <span class="label-text-alt text-gray-500">
+                                Opcional. JPG/PNG, máx. 2 MB, hasta 6000x6000 px.
+                            </span>
                         </label>
                         @error('logo')
                             <span class="text-error text-xs mt-1">{{ $message }}</span>

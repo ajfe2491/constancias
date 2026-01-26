@@ -72,6 +72,17 @@
                                             <span class="badge badge-warning badge-outline badge-sm">Inactivo</span>
                                         </div>
                                     @endif
+                                    <div class="mt-1">
+                                        @if($event->user_id === Auth::id() || Auth::user()->isSuperAdmin())
+                                            @if($event->shared_users_count > 0)
+                                                <span class="badge badge-success badge-outline badge-sm">Compartido</span>
+                                            @else
+                                                <span class="badge badge-ghost badge-sm">Privado</span>
+                                            @endif
+                                        @else
+                                            <span class="badge badge-info badge-outline badge-sm">Compartido contigo</span>
+                                        @endif
+                                    </div>
 
                                     @if($event->documentConfigurations->count() > 0)
                                         <div class="mt-1 flex flex-wrap gap-1">
@@ -94,23 +105,31 @@
                                     </label>
                                     <ul tabindex="0"
                                         class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-44 text-xs">
-                                        <li><button @click='openEdit(@json($event))'>Editar</button></li>
-                                        <li>
-                                            <form action="{{ route('events.toggle-active', $event) }}" method="POST">
-                                                @csrf
-                                                <button type="submit">
-                                                    {{ $event->is_active ? 'Inactivar' : 'Activar' }}
+                                        @if($event->user_id === Auth::id() || Auth::user()->isSuperAdmin())
+                                            <li><button @click='openEdit(@json($event))'>Editar</button></li>
+                                            <li>
+                                                <form action="{{ route('events.toggle-active', $event) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit">
+                                                        {{ $event->is_active ? 'Inactivar' : 'Activar' }}
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <button type="button"
+                                                    onclick="document.getElementById('share-event-{{ $event->id }}').showModal()">
+                                                    Compartir
                                                 </button>
-                                            </form>
-                                        </li>
-                                        <li>
-                                            <form action="{{ route('events.destroy', $event) }}" method="POST"
-                                                onsubmit="return confirm('¿Estás seguro?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-error">Eliminar</button>
-                                            </form>
-                                        </li>
+                                            </li>
+                                            <li>
+                                                <form action="{{ route('events.destroy', $event) }}" method="POST"
+                                                    onsubmit="return confirm('¿Estás seguro?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-error">Eliminar</button>
+                                                </form>
+                                            </li>
+                                        @endif
                                     </ul>
                                 </div>
                             </div>
@@ -135,6 +154,42 @@
                             </div>
                         </div>
                     </div>
+                    @if($event->user_id === Auth::id() || Auth::user()->isSuperAdmin())
+                        <dialog id="share-event-{{ $event->id }}" class="modal">
+                            <div class="modal-box">
+                                <h3 class="font-bold text-lg mb-2">Compartir evento</h3>
+                                <p class="text-sm opacity-70 mb-4">
+                                    Selecciona usuarios que podrán ver este evento y sus constancias.
+                                </p>
+                                <form method="POST" action="{{ route('events.share', $event) }}" class="space-y-4">
+                                    @csrf
+                                    @method('PUT')
+                                    <div class="max-h-64 overflow-y-auto space-y-2 border border-base-200 rounded-lg p-3">
+                                        @forelse($shareableUsers as $user)
+                                            <label class="flex items-center gap-2 text-sm">
+                                                <input type="checkbox" name="shared_users[]"
+                                                    value="{{ $user->id }}"
+                                                    class="checkbox checkbox-primary checkbox-xs"
+                                                    {{ $event->sharedUsers->contains($user->id) ? 'checked' : '' }} />
+                                                <span>{{ $user->name }}</span>
+                                            </label>
+                                        @empty
+                                            <div class="text-xs opacity-60">
+                                                No hay usuarios disponibles para compartir.
+                                            </div>
+                                        @endforelse
+                                    </div>
+                                    <div class="flex justify-end gap-2">
+                                        <button type="button" class="btn btn-ghost"
+                                            onclick="document.getElementById('share-event-{{ $event->id }}').close()">
+                                            Cancelar
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">Guardar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </dialog>
+                    @endif
                 @endforeach
             </div>
         </div>
@@ -199,8 +254,9 @@
                                                 <input type="file" name="logo"
                                                     class="file-input file-input-bordered w-full" accept="image/*" />
                                                 <label class="label">
-                                                    <span class="label-text-alt text-gray-500">Opcional. Se mostrará en
-                                                        los correos electrónicos.</span>
+                                                    <span class="label-text-alt text-gray-500">
+                                                        Opcional. JPG/PNG, máx. 2 MB, hasta 6000x6000 px.
+                                                    </span>
                                                 </label>
                                             </div>
 

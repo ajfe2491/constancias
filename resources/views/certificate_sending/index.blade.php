@@ -109,6 +109,58 @@
         {{ $history->links() }}
     </div>
 
+    <div class="mt-10">
+        <div class="flex items-center justify-between mb-3">
+            <div>
+                <h2 class="text-lg font-bold">Constancias compartidas conmigo</h2>
+                <p class="text-sm opacity-60">Constancias que otros usuarios te dieron acceso</p>
+            </div>
+            <div class="badge badge-outline">
+                {{ $sharedCertificatesCount }} total
+            </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="table w-full table-compact">
+                        <thead>
+                            <tr>
+                                <th>Folio</th>
+                                <th>Constancia</th>
+                                <th>Evento</th>
+                                <th>Compartida por</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($sharedCertificates as $certificate)
+                                <tr class="hover">
+                                    <td class="font-mono">{{ $certificate->folio ?? 'N/A' }}</td>
+                                    <td>{{ $certificate->documentConfiguration->document_name ?? 'N/A' }}</td>
+                                    <td>{{ $certificate->documentConfiguration->event->name ?? 'Sin evento' }}</td>
+                                    <td>{{ $certificate->history->user->name ?? 'Sistema' }}</td>
+                                    <td>
+                                        <a href="{{ route('certificates.verify', $certificate->uuid) }}"
+                                            target="_blank" class="btn btn-ghost btn-xs">
+                                            Verificar
+                                        </a>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center py-8 opacity-50">
+                                        No tienes constancias compartidas por ahora.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             function checkAndReload() {
