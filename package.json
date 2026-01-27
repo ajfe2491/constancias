@@ -19,6 +19,8 @@
     },
     "dependencies": {
         "animejs": "^4.3.3",
-        "daisyui": "^4.12.14"
+        "daisyui": "^4.12.14",
+        "mjml": "^4.18.0",
+        "mysql2": "^3.16.2"
     }
 }

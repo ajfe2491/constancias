@@ -1,0 +1,306 @@
+# Documentación funcional por módulos
+
+Este documento describe la funcionalidad de cada módulo, tal como opera hoy en
+el sistema.
+
+## Orden propuesto de módulos
+
+1. Acceso (login)
+2. Dashboard
+3. Eventos
+4. Configuraciones de documento
+5. Envío de constancias
+6. Verificación pública de constancias
+7. Usuarios y roles
+8. Perfil
+9. Correo y plantillas
+
+---
+
+## Módulo: Acceso (Login)
+
+**Objetivo**
+
+Permitir el ingreso seguro a la plataforma y establecer el contexto visual
+(tema claro/oscuro) desde el primer acceso.
+
+**Lo que hace el usuario**
+
+- Inicia sesión con correo y contraseña.
+- Puede ver el estado de su sesión (mensajes de éxito o error).
+- Activa o desactiva el modo oscuro desde un botón flotante en la esquina
+  superior derecha.
+- Puede mostrar/ocultar la contraseña con un control visual en el campo.
+- Opcionalmente marca “Recuérdame” para persistir la sesión.
+
+**Comportamiento y reglas**
+
+- El formulario usa protección CSRF.
+- El botón de “¿Olvidaste tu contraseña?” aparece si la ruta está habilitada.
+- El modo claro/oscuro se guarda en `localStorage` y también respeta la
+  preferencia del sistema la primera vez.
+- Se aplican animaciones de entrada (título, cabecera, campos y acciones).
+- El fondo animado se aplica solo en la pantalla de login.
+
+**Pantallas involucradas**
+
+- Login
+
+**Notas de uso**
+
+El objetivo visual es dar una primera impresión moderna sin saturar la vista:
+el logo y el título "SIICE" tienen un énfasis visual claro, mientras que el
+formulario mantiene una jerarquía limpia y legible.
+
+---
+
+## Módulo: Dashboard
+
+**Objetivo**
+
+Ofrecer un resumen ejecutivo de la operación: actividad reciente, métricas
+clave y accesos rápidos a las acciones más usadas.
+
+**Lo que ve el usuario**
+
+- Un saludo personalizado y un acceso directo a “Nueva Emisión”.
+- Indicadores principales: constancias emitidas, tasa de éxito, eventos activos,
+  plantillas configuradas y usuarios.
+- Métricas adicionales: eventos inactivos, lotes procesados, último envío,
+  constancias de hoy y del mes, y éxito de los últimos 30 días.
+- Gráficas de tendencia de envíos, top de eventos y tipos de eventos.
+- Tabla de actividad reciente con los últimos envíos.
+
+**Comportamiento y reglas**
+
+- Los accesos rápidos se muestran según permisos (enviar constancias, gestionar
+  eventos, plantillas y usuarios).
+- Si no hay datos suficientes en una gráfica, se muestra un mensaje claro de
+  “Sin datos suficientes”.
+- La sección de “Análisis de Errores” lista fallos recientes y resalta el
+  porcentaje de error por fecha.
+- Se aplican animaciones al hacer scroll para cada bloque, con efectos
+  diferenciados por sección.
+
+**Pantallas involucradas**
+
+- Dashboard
+
+**Notas de uso**
+
+El dashboard prioriza lectura rápida: tarjetas con números claros, gráficos
+compactos y acciones visibles sin saturar. La animación es secundaria y solo
+acompaña el scroll para dar dinamismo.
+
+---
+
+## Módulo: Eventos
+
+**Objetivo**
+
+Centralizar la administración de eventos, sus datos clave y las plantillas
+asociadas.
+
+**Lo que hace el usuario**
+
+- Busca eventos por nombre y puede filtrar “Mostrar inactivos”.
+- Crea eventos desde un panel lateral sin salir del listado.
+- Edita, activa/inactiva, comparte o elimina eventos cuando es propietario.
+- Visualiza el detalle del evento con métricas rápidas y sus plantillas.
+
+**Comportamiento y reglas**
+
+- El listado usa tarjetas con el nombre, clave, tipo y etiquetas de estado.
+- Los eventos inactivos se muestran con etiqueta visible.
+- La clave del evento se utiliza como prefijo para el folio de constancias.
+- La opción de compartir permite otorgar acceso a otros usuarios.
+- En el detalle, si no eres propietario, las plantillas se muestran en modo
+  solo lectura y se ocultan acciones de edición.
+
+**Pantallas involucradas**
+
+- Listado de eventos
+- Detalle de evento
+
+**Notas de uso**
+
+Se prioriza el flujo rápido: crear y editar sin salir del listado, y ver
+información clave del evento en una sola vista.
+
+---
+
+## Módulo: Configuraciones de documento
+
+**Objetivo**
+
+Definir la plantilla visual de las constancias y su comportamiento (variables,
+folio, QR, elementos gráficos).
+
+**Lo que hace el usuario**
+
+- Crea una nueva configuración con nombre, tipo, descripción y folio inicial.
+- Puede vincularla a un evento o dejarla como genérica.
+- Copia configuraciones existentes para reutilizarlas en otros eventos.
+- Edita la plantilla en un editor visual con vista previa en tiempo real.
+- Comparte plantillas con otros usuarios (si es propietario).
+
+**Comportamiento y reglas**
+
+- Las tarjetas muestran previsualización, tipo, evento y estado.
+- El editor trabaja con un panel de vista previa (70%) y un panel de edición (30%).
+- QR y folio son obligatorios en la configuración.
+- Las variables pueden copiarse con un clic y se actualiza la vista previa.
+- Los elementos (textos/QR/folio) son arrastrables y redimensionables.
+
+**Pantallas involucradas**
+
+- Listado de configuraciones
+- Crear configuración
+- Copiar configuración
+- Editor de configuración
+
+**Notas de uso**
+
+El editor está pensado para trabajar "a la vista": edición a la derecha y
+previsualización completa a la izquierda, con controles claros y sin pantallas
+intermedias.
+
+---
+
+## Módulo: Envío de constancias
+
+**Objetivo**
+
+Emitir constancias de forma individual o masiva, y dar seguimiento al estado de
+los envíos.
+
+**Lo que hace el usuario**
+
+- Elige entre envío masivo (CSV) o envío individual.
+- En masivo: selecciona la configuración, descarga plantilla CSV y sube el archivo.
+- En individual: llena correo y variables sin necesidad de CSV.
+- Consulta el historial de envíos y entra al detalle de cada envío.
+- Puede reenviar constancias individuales desde el detalle.
+- Puede compartir constancias con otros usuarios.
+
+**Comportamiento y reglas**
+
+- El flujo masivo usa pasos guiados con validaciones.
+- El CSV exige la columna `email` y formato delimitado por comas.
+- El historial muestra progreso, éxitos y fallos con un indicador visual.
+- En el detalle, solo el propietario ve progreso, descarga CSV y acciones de envío.
+- Las constancias compartidas aparecen en una tabla separada.
+
+**Pantallas involucradas**
+
+- Nuevo envío
+- Historial de envíos
+- Detalle del envío
+
+**Notas de uso**
+
+El envío masivo está diseñado como un proceso claro en dos pasos para reducir
+errores. El envío individual sirve como prueba rápida y validación de datos.
+
+---
+
+## Módulo: Verificación pública de constancias
+
+**Objetivo**
+
+Permitir la verificación pública de autenticidad mediante un UUID único.
+
+**Lo que ve el usuario**
+
+- Vista previa de la constancia.
+- Resumen del documento, evento y datos clave (folio, fechas, correo).
+- Sección de “Datos relevantes” cuando existen variables adicionales.
+
+**Comportamiento y reglas**
+
+- La verificación es pública y no requiere iniciar sesión.
+- El diseño separa la vista previa y una columna lateral con los detalles.
+- La información mostrada es la necesaria para validar la constancia.
+
+**Pantallas involucradas**
+
+- Verificación pública
+
+---
+
+## Módulo: Usuarios y roles
+
+**Objetivo**
+
+Administrar cuentas de usuario, roles y permisos de operación.
+
+**Lo que hace el usuario**
+
+- Crea y edita usuarios.
+- Asigna roles y permisos por usuario.
+- Administra roles y sus permisos asociados.
+
+**Comportamiento y reglas**
+
+- El usuario `admin@siice.com` aparece marcado como Super Admin.
+- El Super Admin no puede cambiar su nombre ni ser eliminado.
+- Los roles “Administrador” y “admin” no muestran opción de eliminación.
+
+**Pantallas involucradas**
+
+- Listado de usuarios
+- Edición de usuario
+- Listado de roles
+
+**Notas de uso**
+
+La tabla de usuarios prioriza información útil (nombre, correo, roles) y deja
+claro cuando se trata de un Super Admin.
+
+---
+
+## Módulo: Perfil
+
+**Objetivo**
+
+Permitir que cada usuario gestione su propia información de cuenta.
+
+**Lo que hace el usuario**
+
+- Actualiza su nombre y correo.
+- Reenvía verificación de correo si aplica.
+- Cambia su contraseña.
+- Solicita la eliminación de su cuenta (si no es Super Admin).
+
+**Comportamiento y reglas**
+
+- El Super Admin tiene el nombre bloqueado y no puede eliminar su cuenta.
+- Las acciones se agrupan por secciones para evitar errores.
+
+**Pantallas involucradas**
+
+- Perfil
+
+---
+
+## Módulo: Correo y plantillas
+
+**Objetivo**
+
+Estandarizar la comunicación por correo con los destinatarios.
+
+**Lo que ve el destinatario**
+
+- Mensaje principal configurado en la constancia.
+- Logo institucional (si existe).
+- Aviso de "no responder" en el pie del correo.
+
+**Comportamiento y reglas**
+
+- El contenido respeta saltos de línea.
+- El aviso de no responder se agrega siempre al final.
+
+**Pantallas involucradas**
+
+- Plantilla de correo de constancias
+

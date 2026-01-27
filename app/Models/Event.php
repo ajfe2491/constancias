@@ -18,6 +18,9 @@ class Event extends Model
         'description',
         'is_active',
         'logo',
+        'email_subject',
+        'email_template_html',
+        'email_template_mjml',
         'user_id',
     ];
 

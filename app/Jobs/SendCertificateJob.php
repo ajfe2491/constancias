@@ -83,14 +83,47 @@ class SendCertificateJob implements ShouldQueue
             $pdfContent = $pdf->Output('', 'S');
 
             // Send Email
+            $event = $this->configuration->event;
+            $eventDates = 'N/A';
+            if ($event && ($event->start_date || $event->end_date)) {
+                $start = $event->start_date ? $event->start_date->format('d/m/Y') : null;
+                $end = $event->end_date ? $event->end_date->format('d/m/Y') : null;
+                $eventDates = $start && $end ? $start . ' - ' . $end : ($start ?: $end);
+            }
+            $templateHtml = $this->configuration->email_template_html
+                ?: ($event->email_template_html ?? null);
+            $templateSubject = $this->configuration->email_subject
+                ?: ($event->email_subject ?? null);
+            $eventLogoUrl = $event && $event->logo ? url(Storage::url($event->logo)) : '';
+            $templateData = [
+                'participant_name' => $this->recipientData['nombre_participante'] ?? 'Participante',
+                'event_name' => $event->name ?? 'Evento',
+                'event_logo_url' => $eventLogoUrl,
+                'event_type' => $event->type ?? '',
+                'event_key' => $event->key ?? '',
+                'event_dates' => $eventDates,
+                'event_description' => $event->description ?? '',
+                'document_name' => $this->configuration->document_name ?? 'Constancia',
+                'document_type' => $this->configuration->document_type ?? '',
+                'document_description' => $this->configuration->description ?? '',
+                'recipient_email' => $this->recipientData['email'] ?? '',
+                'folio' => $certificate->folio ?? '',
+                'uuid' => $certificate->uuid,
+                'verification_url' => route('certificates.verify', $certificate->uuid),
+            ];
+            $templateData = $templateData + $this->recipientData;
+
             Mail::to($this->recipientData['email'])->send(new CertificateMail(
                 $pdfContent,
                 ($this->configuration->document_name ?? 'constancia') . '.pdf',
                 $this->recipientData['nombre_participante'] ?? 'Participante',
-                $this->configuration->event->name ?? 'Evento',
+                $event->name ?? 'Evento',
                 $this->configuration->document_name ?? 'Constancia',
-                $this->configuration->event->logo ?? null,
-                $this->configuration->email_message ?? null
+                $event->logo ?? null,
+                $this->configuration->email_message ?? null,
+                $templateHtml,
+                $templateSubject,
+                $templateData
             ));
 
             // Update History (Success)

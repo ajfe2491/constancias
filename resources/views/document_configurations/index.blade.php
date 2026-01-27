@@ -111,6 +111,11 @@
                                         class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-44 text-xs">
                                         @if($config->user_id === Auth::id() || Auth::user()->isSuperAdmin())
                                             <li><a href="{{ route('document-configurations.edit', $config) }}">Editar</a></li>
+                                            <li>
+                                                <a href="{{ route('document-configurations.email-template.edit', $config) }}">
+                                                    Plantilla de correo
+                                                </a>
+                                            </li>
                                             <li><a href="{{ route('document-configurations.copy', $config) }}">Copiar</a></li>
                                             <li>
                                                 <button type="button"

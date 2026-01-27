@@ -44,6 +44,10 @@ Route::middleware('auth')->group(function () {
     Route::get('document-configurations/{document_configuration}/background-image', [\App\Http\Controllers\DocumentConfigurationController::class, 'backgroundImage'])->name('document-configurations.background-image');
     Route::get('document-configurations/{document_configuration}/copy', [\App\Http\Controllers\DocumentConfigurationController::class, 'copy'])->name('document-configurations.copy');
     Route::post('document-configurations/{document_configuration}/copy', [\App\Http\Controllers\DocumentConfigurationController::class, 'storeCopy'])->name('document-configurations.copy.store');
+    Route::get('document-configurations/{document_configuration}/email-template', [\App\Http\Controllers\EmailTemplateController::class, 'editDocumentConfiguration'])
+        ->name('document-configurations.email-template.edit');
+    Route::put('document-configurations/{document_configuration}/email-template', [\App\Http\Controllers\EmailTemplateController::class, 'updateDocumentConfiguration'])
+        ->name('document-configurations.email-template.update');
     Route::resource('document-configurations', \App\Http\Controllers\DocumentConfigurationController::class);
     Route::get('/certificate-sending/{history}/status', [CertificateSendingController::class, 'status'])->name('certificate-sending.status');
     Route::resource('certificate-sending', CertificateSendingController::class)
@@ -54,6 +58,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/certificate-sending/{document_configuration}/template', [CertificateSendingController::class, 'downloadTemplate'])->name('certificate-sending.template');
     Route::post('/events/{event}/toggle-active', [EventController::class, 'toggleActive'])
         ->name('events.toggle-active');
+    Route::get('/events/{event}/email-template', [\App\Http\Controllers\EmailTemplateController::class, 'editEvent'])
+        ->name('events.email-template.edit');
+    Route::put('/events/{event}/email-template', [\App\Http\Controllers\EmailTemplateController::class, 'updateEvent'])
+        ->name('events.email-template.update');
     Route::resource('events', \App\Http\Controllers\EventController::class);
 
     // User & Role Management

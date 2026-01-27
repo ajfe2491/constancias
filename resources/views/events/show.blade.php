@@ -14,6 +14,14 @@
                     Volver
                 </a>
                 @if($isOwner)
+                    <a href="{{ route('events.email-template.edit', $event) }}" class="btn btn-outline btn-sm gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 12H8m0 0l4-4m-4 4l4 4" />
+                        </svg>
+                        Plantilla de correo
+                    </a>
                     <a href="{{ route('events.edit', $event) }}" class="btn btn-primary btn-sm gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">

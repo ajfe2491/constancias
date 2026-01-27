@@ -9,6 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
+use App\Support\EmailTemplateRenderer;
 
 class CertificateMail extends Mailable
 {
@@ -24,7 +25,10 @@ class CertificateMail extends Mailable
         public $eventName,
         public $documentName,
         public $logo = null,
-        public $emailMessage = null
+        public $emailMessage = null,
+        public $emailTemplateHtml = null,
+        public $emailSubject = null,
+        public array $templateData = []
     ) {}
 
     /**
@@ -32,9 +36,13 @@ class CertificateMail extends Mailable
      */
     public function envelope(): Envelope
     {
+        $subject = $this->emailSubject
+            ? EmailTemplateRenderer::renderSubject($this->emailSubject, $this->templateData)
+            : $this->documentName . ' ' . $this->eventName;
+
         return new Envelope(
             from: new \Illuminate\Mail\Mailables\Address(config('mail.from.address'), $this->eventName),
-            subject: $this->documentName . ' ' . $this->eventName,
+            subject: $subject,
         );
     }
 
@@ -43,6 +51,18 @@ class CertificateMail extends Mailable
      */
     public function content(): Content
     {
+        if ($this->emailTemplateHtml) {
+            $html = EmailTemplateRenderer::renderHtml(
+                $this->emailTemplateHtml,
+                $this->templateData,
+                $this->emailMessage
+            );
+
+            return new Content(
+                htmlString: $html,
+            );
+        }
+
         return new Content(
             markdown: 'emails.certificate',
             with: [

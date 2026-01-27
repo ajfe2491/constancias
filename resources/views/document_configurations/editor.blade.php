@@ -21,6 +21,15 @@
                     </svg>
                     Volver
                 </a>
+                <a href="{{ route('document-configurations.email-template.edit', $documentConfiguration) }}"
+                    class="btn btn-outline btn-sm gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 12H8m0 0l4-4m-4 4l4 4" />
+                    </svg>
+                    Plantilla de correo
+                </a>
                 <button @click="document.getElementById('config-form').submit()" class="btn btn-primary btn-sm gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
@@ -52,9 +61,11 @@
                     <div class="join shadow-sm tooltip tooltip-bottom"
                         :data-tip="key === 'folio' ? 'Formato: [ClaveEvento]-[Año]-[Folio]' : 'Usa: {' + key + '}'">
                         <button type="button"
+                            draggable="true"
+                            @dragstart="startVariableDrag($event, key)"
                             @click="navigator.clipboard.writeText('{' + key + '}'); $event.target.classList.add('btn-success'); setTimeout(() => $event.target.classList.remove('btn-success'), 500)"
                             class="join-item btn btn-xs btn-ghost font-mono text-[10px] px-1 bg-base-200 border-base-300 hover:bg-base-300"
-                            :title="'Click para copiar {' + key + '}'">
+                            :title="'Arrastra o da click para copiar {' + key + '}'">
                             <span x-text="key"></span>
                         </button>
                         <input type="text" x-model="sampleData[key]"
@@ -82,7 +93,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span class="text-[9px]">Click en variable para copiar</span>
+                    <span class="text-[9px]">Click o arrastra para insertar</span>
                 </div>
             </div>
         </div>
@@ -100,6 +111,36 @@
                             <input type="checkbox" class="toggle toggle-xs toggle-primary"
                                 x-model="enableDrag" />
                         </label>
+                        <div class="flex items-center gap-1 text-[10px] opacity-60">
+                            <button type="button" @click="undo()" class="btn btn-ghost btn-xs min-h-0 h-6 px-1"
+                                title="Deshacer (Ctrl+Z)">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 14l-4-4 4-4" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 10h9a5 5 0 015 5v1" />
+                                </svg>
+                                <span class="ml-1">Ctrl+Z</span>
+                            </button>
+                            <span class="opacity-40">|</span>
+                            <button type="button" @click="redo()" class="btn btn-ghost btn-xs min-h-0 h-6 px-1"
+                                title="Rehacer (Ctrl+Y)">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 14l4-4-4-4" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 10H10a5 5 0 00-5 5v1" />
+                                </svg>
+                                <span class="ml-1">Ctrl+Y</span>
+                            </button>
+                            <span class="opacity-40">|</span>
+                            <button type="button" @click="deleteActiveElement()" class="btn btn-ghost btn-xs min-h-0 h-6 px-1"
+                                title="Eliminar (Supr)">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 11v6M14 11v6" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7l1 12a1 1 0 001 1h4a1 1 0 001-1l1-12" />
+                                </svg>
+                                <span class="ml-1">Supr</span>
+                            </button>
+                        </div>
                         <button @click="refreshPreview(true)" class="btn btn-xs btn-ghost gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
@@ -112,6 +153,9 @@
                 </div>
                 <div
                     x-ref="previewContainer"
+                    @dragover.prevent="allowVariableDrop($event)"
+                    @drop.prevent="handleVariableDrop($event)"
+                    @mousedown.self="activeElement = null"
                     class="flex-1 bg-base-200 rounded-lg shadow-inner overflow-hidden relative flex items-center justify-center">
                     <div x-show="loading"
                         class="absolute inset-0 bg-base-100/50 flex items-center justify-center z-10 backdrop-blur-sm">
@@ -122,8 +166,10 @@
                             :style="'width:' + overlayWidthPx + 'px; height:' + overlayHeightPx + 'px; transform: translate(' + overlayOffsetX + 'px,' + overlayOffsetY + 'px);'">
                             <template x-for="(element, index) in textElements" :key="'drag-text-' + index">
                                 <div class="absolute border border-primary/60 bg-primary/10 rounded-sm cursor-move pointer-events-auto"
+                                    :class="activeElement && activeElement.type === 'text' && activeElement.index === index ? 'ring-2 ring-primary/70' : ''"
                                     :style="elementStyle(element)"
-                                    @mousedown.prevent="startDrag($event, 'text', index)">
+                                    @mousedown.prevent="startDrag($event, 'text', index)"
+                                    @dblclick.stop="editElementText(index)">
                                     <span class="text-[9px] text-primary px-1 py-0.5 bg-base-100/80 rounded">
                                         <span x-text="element.name || 'Texto'"></span>
                                     </span>
@@ -140,7 +186,8 @@
                             <div x-show="showQr"
                                 class="absolute border border-secondary/70 bg-secondary/10 rounded-sm cursor-move pointer-events-auto"
                                 :style="qrStyle()"
-                                @mousedown.prevent="startDrag($event, 'qr', null)">
+                                @mousedown.prevent="startDrag($event, 'qr', null)"
+                                :class="activeElement && activeElement.type === 'qr' ? 'ring-2 ring-secondary/70' : ''">
                                 <span class="text-[9px] text-secondary px-1 py-0.5 bg-base-100/80 rounded">QR</span>
                                 <div class="absolute -left-1 -top-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nwse-resize"
                                     @mousedown.prevent="startResize($event, 'qr', null, 'nw')"></div>
@@ -154,7 +201,8 @@
                             <div x-show="showFolio"
                                 class="absolute border border-accent/70 bg-accent/10 rounded-sm cursor-move pointer-events-auto"
                                 :style="folioStyle()"
-                                @mousedown.prevent="startDrag($event, 'folio', null)">
+                                @mousedown.prevent="startDrag($event, 'folio', null)"
+                                :class="activeElement && activeElement.type === 'folio' ? 'ring-2 ring-accent/70' : ''">
                                 <span class="text-[9px] text-accent px-1 py-0.5 bg-base-100/80 rounded">Folio</span>
                                 <div class="absolute -left-1 -top-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nwse-resize"
                                     @mousedown.prevent="startResize($event, 'folio', null, 'nw')"></div>
@@ -786,6 +834,9 @@
                     newVarKey: '',
 
                     notifications: [],
+                    undoStack: [],
+                    redoStack: [],
+                    historyLimit: 30,
 
                     init() {
                         this.$nextTick(() => {
@@ -847,6 +898,28 @@
                                     this.scheduleAutoSave();
                                 });
                             }
+
+                            window.addEventListener('keydown', (event) => {
+                                if (this.isEditingInput(event.target)) return;
+                                const isMeta = event.metaKey || event.ctrlKey;
+                                if (isMeta && event.key.toLowerCase() === 'z') {
+                                    event.preventDefault();
+                                    if (event.shiftKey) {
+                                        this.redo();
+                                    } else {
+                                        this.undo();
+                                    }
+                                    return;
+                                }
+                                if (isMeta && event.key.toLowerCase() === 'y') {
+                                    event.preventDefault();
+                                    this.redo();
+                                    return;
+                                }
+                                if (event.key === 'Delete' || event.key === 'Backspace') {
+                                    this.deleteActiveElement();
+                                }
+                            });
                         });
                     },
 
@@ -860,6 +933,85 @@
                         setTimeout(() => {
                             this.notifications = this.notifications.filter(n => n.id !== id);
                         }, 3000);
+                    },
+
+                    setActiveElement(type, index = null) {
+                        this.activeElement = { type, index };
+                    },
+
+                    deleteActiveElement() {
+                        if (!this.activeElement) return;
+                        if (this.activeElement.type === 'text') {
+                            this.pushHistory();
+                            this.textElements.splice(this.activeElement.index, 1);
+                            this.activeElement = null;
+                            this.refreshPreview(true);
+                            this.scheduleAutoSave();
+                            this.showNotification('Elemento eliminado', 'info');
+                            return;
+                        }
+                        if (this.activeElement.type === 'qr' || this.activeElement.type === 'folio') {
+                            this.showNotification('El QR y el folio no se pueden eliminar', 'warning');
+                        }
+                    },
+
+                    isEditingInput(target) {
+                        if (!target) return false;
+                        const tag = target.tagName ? target.tagName.toLowerCase() : '';
+                        return tag === 'input' || tag === 'textarea' || target.isContentEditable;
+                    },
+
+                    snapshotState() {
+                        return {
+                            textElements: JSON.parse(JSON.stringify(this.textElements)),
+                            qrX: this.qrX,
+                            qrY: this.qrY,
+                            qrWidth: this.qrWidth,
+                            qrHeight: this.qrHeight,
+                            folioX: this.folioX,
+                            folioY: this.folioY,
+                            folioWidth: this.folioWidth,
+                            folioHeight: this.folioHeight,
+                        };
+                    },
+
+                    pushHistory() {
+                        this.undoStack.push(this.snapshotState());
+                        if (this.undoStack.length > this.historyLimit) {
+                            this.undoStack.shift();
+                        }
+                        this.redoStack = [];
+                    },
+
+                    restoreState(state) {
+                        if (!state) return;
+                        this.textElements = JSON.parse(JSON.stringify(state.textElements || []));
+                        this.qrX = state.qrX ?? this.qrX;
+                        this.qrY = state.qrY ?? this.qrY;
+                        this.qrWidth = state.qrWidth ?? this.qrWidth;
+                        this.qrHeight = state.qrHeight ?? this.qrHeight;
+                        this.folioX = state.folioX ?? this.folioX;
+                        this.folioY = state.folioY ?? this.folioY;
+                        this.folioWidth = state.folioWidth ?? this.folioWidth;
+                        this.folioHeight = state.folioHeight ?? this.folioHeight;
+                        this.activeElement = null;
+                        this.clampAllPositions();
+                        this.refreshPreview(true);
+                        this.scheduleAutoSave();
+                    },
+
+                    undo() {
+                        if (!this.undoStack.length) return;
+                        this.redoStack.push(this.snapshotState());
+                        const state = this.undoStack.pop();
+                        this.restoreState(state);
+                    },
+
+                    redo() {
+                        if (!this.redoStack.length) return;
+                        this.undoStack.push(this.snapshotState());
+                        const state = this.redoStack.pop();
+                        this.restoreState(state);
                     },
 
                     scheduleAutoSave() {
@@ -1105,6 +1257,8 @@
 
                     startDrag(event, type, index) {
                         if (!this.enableDrag) return;
+                        this.setActiveElement(type, index);
+                        this.pushHistory();
                         const startX = event.clientX;
                         const startY = event.clientY;
                         let originX = 0;
@@ -1156,6 +1310,8 @@
 
                     startResize(event, type, index, direction = 'se') {
                         if (!this.enableDrag) return;
+                        this.setActiveElement(type, index);
+                        this.pushHistory();
                         const startX = event.clientX;
                         const startY = event.clientY;
 
@@ -1254,7 +1410,91 @@
                         }
                     },
 
+                    startVariableDrag(event, key) {
+                        if (!event?.dataTransfer) return;
+                        event.dataTransfer.setData('application/x-constancias-var', key);
+                        event.dataTransfer.setData('text/plain', key);
+                        event.dataTransfer.effectAllowed = 'copy';
+                    },
+
+                    allowVariableDrop(event) {
+                        const types = event?.dataTransfer?.types || [];
+                        if (!types || !Array.from(types).includes('application/x-constancias-var')) {
+                            return;
+                        }
+                        event.preventDefault();
+                    },
+
+                    handleVariableDrop(event) {
+                        const key = event?.dataTransfer?.getData('application/x-constancias-var');
+                        if (!key) return;
+
+                        const container = this.$refs.previewContainer;
+                        if (!container) return;
+
+                        const rect = container.getBoundingClientRect();
+                        const relativeX = event.clientX - rect.left - this.overlayOffsetX;
+                        const relativeY = event.clientY - rect.top - this.overlayOffsetY;
+                        if (relativeX < 0 || relativeY < 0
+                            || relativeX > this.overlayWidthPx
+                            || relativeY > this.overlayHeightPx) {
+                            return;
+                        }
+
+                        if (this.overlayScale <= 0) return;
+
+                        const xMm = Math.max(0, relativeX / this.overlayScale);
+                        const yMm = Math.max(0, relativeY / this.overlayScale);
+                        this.addTextElementAt(key, xMm, yMm);
+                    },
+
+                    addTextElementAt(key, xMm, yMm) {
+                        const page = this.getPageDimensionsMm();
+                        const widthMm = 50;
+                        const heightMm = 10;
+                        const clampedX = Math.max(0, Math.min(xMm, page.width - widthMm));
+                        const clampedY = Math.max(0, Math.min(yMm, page.height - heightMm));
+
+                        this.pushHistory();
+                        this.textElements.push({
+                            name: key,
+                            text: '{' + key + '}',
+                            x: parseFloat(clampedX.toFixed(1)),
+                            y: parseFloat(clampedY.toFixed(1)),
+                            width: widthMm,
+                            height: heightMm,
+                            font_size: 12,
+                            alignment: 'L',
+                            text_color: '#000000',
+                            fill_color: '#FFFFFF',
+                            fill: false
+                        });
+
+                        this.setActiveElement('text', this.textElements.length - 1);
+                        this.refreshPreview(true);
+                        this.scheduleAutoSave();
+                        this.showNotification('Variable agregada al documento', 'success');
+                    },
+
+                    editElementText(index) {
+                        const element = this.textElements[index];
+                        if (!element) return;
+
+                        const current = element.text || '';
+                        const next = window.prompt('Texto del elemento:', current);
+                        if (next === null) return;
+
+                        this.pushHistory();
+                        element.text = next;
+                        if (!element.name || element.name === 'nuevo_elemento') {
+                            element.name = next.slice(0, 24) || element.name;
+                        }
+                        this.refreshPreview(true);
+                        this.scheduleAutoSave();
+                    },
+
                     addElement() {
+                        this.pushHistory();
                         this.textElements.push({
                             name: 'nuevo_elemento',
                             text: 'Texto de ejemplo',
@@ -1273,6 +1513,7 @@
                     },
 
                     removeElement(index) {
+                        this.pushHistory();
                         this.textElements.splice(index, 1);
                         this.refreshPreview();
                         this.showNotification('Elemento eliminado', 'info');
