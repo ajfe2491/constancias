@@ -74,6 +74,8 @@
             </li>
         @endcan
 
+
+
         @can('enviar constancias')
             <li>
                 <a href="{{ route('certificate-sending.index') }}"

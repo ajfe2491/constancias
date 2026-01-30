@@ -251,6 +251,10 @@ class DocumentConfiguration extends Model
                 $fontStyle = $element['font_style'] ?? $this->default_font_style ?? '';
                 $fontSize = $element['font_size'] ?? $this->default_font_size ?? 12;
 
+                // Ajustar tamaño de fuente para que el texto no se desborde
+                $maxWidth = $element['width'] ?? 50;
+                $maxHeight = $element['height'] ?? 10;
+                $fontSize = $this->fitFontSizeToBox($pdf, $text, $fontFamily, $fontStyle, $fontSize, $maxWidth, $maxHeight, $unit);
                 $pdf->SetFont($fontFamily, $fontStyle, $fontSize);
 
                 // Colores
@@ -290,16 +294,30 @@ class DocumentConfiguration extends Model
 
                 $pdf->SetXY($x, $y);
 
+                $lineHeight = $this->fontSizeToUnit($fontSize, $unit) * 1.2;
+                if ($lineHeight <= 0) {
+                    $lineHeight = max(4, $h);
+                }
+
                 // Verificar si el texto contiene marcadores de formato (*, %, &)
                 $hasFormatMarkers = (strpos($text, '*') !== false || strpos($text, '%') !== false || strpos($text, '&') !== false);
+                $hasNewlines = str_contains($text, "\n");
+                $textForMeasure = $text;
+                if (function_exists('iconv')) {
+                    $textForMeasure = iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text);
+                }
+                $needsWrap = $hasNewlines || $pdf->GetStringWidth($textForMeasure) > $w;
+                $multicell = $multicell || $needsWrap;
 
                 if ($hasFormatMarkers) {
+                    $element['line_height'] = max(($element['line_height'] ?? 0), $lineHeight);
+                    $element['multicell'] = $multicell;
                     $this->drawFormattedText($pdf, $text, $element, $fontFamily, $fontSize, $textColorHex, $fillColorHex, $fill, $multicell);
                 } else {
                     if ($multicell) {
-                        $pdf->MultiCell($w, $h, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text), 0, $align, $fill);
+                        $pdf->MultiCell($w, $lineHeight, $textForMeasure, 0, $align, $fill);
                     } else {
-                        $pdf->Cell($w, $h, iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $text), 0, 0, $align, $fill);
+                        $pdf->Cell($w, $h, $textForMeasure, 0, 0, $align, $fill);
                     }
                 }
             }
@@ -350,6 +368,79 @@ class DocumentConfiguration extends Model
             $b = hexdec(substr($hex, 4, 2));
         }
         return ['r' => $r, 'g' => $g, 'b' => $b];
+    }
+
+    protected function fontSizeToUnit($fontSize, $unit): float
+    {
+        $size = floatval($fontSize);
+        if ($size <= 0) {
+            return 0;
+        }
+        return match ($unit) {
+            'pt' => $size,
+            'in' => $size / 72,
+            default => $size * 0.3527, // mm
+        };
+    }
+
+    protected function fitFontSizeToBox($pdf, string $text, string $fontFamily, string $fontStyle, float $fontSize, float $maxWidth, float $maxHeight, string $unit): float
+    {
+        $maxWidth = floatval($maxWidth ?: 0);
+        $maxHeight = floatval($maxHeight ?: 0);
+        if ($maxWidth <= 0 || $maxHeight <= 0 || $fontSize <= 0) {
+            return $fontSize;
+        }
+
+        $cleanText = str_replace(['*', '%', '&'], '', $text);
+        $cleanText = str_replace(['\\n', '\\r'], ["\n", "\r"], $cleanText);
+        $minSize = 6;
+        $current = $fontSize;
+
+        while ($current >= $minSize) {
+            $pdf->SetFont($fontFamily, $fontStyle, $current);
+            $lineHeight = $this->fontSizeToUnit($current, $unit) * 1.2;
+            if ($lineHeight <= 0) {
+                return $current;
+            }
+            $lines = $this->countWrappedLines($pdf, $cleanText, $maxWidth);
+            $neededHeight = max(1, $lines) * $lineHeight;
+            if ($neededHeight <= $maxHeight) {
+                return $current;
+            }
+            $current -= 1;
+        }
+
+        return max($minSize, $current);
+    }
+
+    protected function countWrappedLines($pdf, string $text, float $maxWidth): int
+    {
+        if ($maxWidth <= 0) {
+            return 1;
+        }
+        $paragraphs = preg_split('/\r\n|\r|\n/', $text) ?: [''];
+        $lines = 0;
+
+        foreach ($paragraphs as $para) {
+            $words = preg_split('/\s+/', trim($para)) ?: [''];
+            if (count($words) === 0) {
+                $lines += 1;
+                continue;
+            }
+            $line = '';
+            foreach ($words as $word) {
+                $test = $line === '' ? $word : $line . ' ' . $word;
+                if ($pdf->GetStringWidth($test) <= $maxWidth) {
+                    $line = $test;
+                } else {
+                    $lines += 1;
+                    $line = $word;
+                }
+            }
+            $lines += 1;
+        }
+
+        return max(1, $lines);
     }
 
     /**

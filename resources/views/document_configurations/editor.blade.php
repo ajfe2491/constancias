@@ -162,10 +162,10 @@
                         <span class="loading loading-spinner loading-lg text-primary"></span>
                     </div>
                     <div x-show="enableDrag" class="absolute inset-0 pointer-events-none z-20">
-                        <div x-ref="overlay" class="absolute pointer-events-none"
+                        <div x-ref="overlay" class="absolute pointer-events-none overflow-visible"
                             :style="'width:' + overlayWidthPx + 'px; height:' + overlayHeightPx + 'px; transform: translate(' + overlayOffsetX + 'px,' + overlayOffsetY + 'px);'">
                             <template x-for="(element, index) in textElements" :key="'drag-text-' + index">
-                                <div class="absolute border border-primary/60 bg-primary/10 rounded-sm cursor-move pointer-events-auto"
+                                <div class="absolute border border-primary/60 bg-primary/10 rounded-sm cursor-move pointer-events-auto overflow-visible"
                                     :class="activeElement && activeElement.type === 'text' && activeElement.index === index ? 'ring-2 ring-primary/70' : ''"
                                     :style="elementStyle(element)"
                                     @mousedown.prevent="startDrag($event, 'text', index)"
@@ -173,6 +173,18 @@
                                     <span class="text-[9px] text-primary px-1 py-0.5 bg-base-100/80 rounded">
                                         <span x-text="element.name || 'Texto'"></span>
                                     </span>
+                                    <div class="absolute -left-1 z-20 h-3 w-3 bg-primary rounded-sm border border-white shadow pointer-events-auto"
+                                        style="top: 50%; transform: translateY(-50%); cursor: ew-resize;"
+                                        @mousedown.stop.prevent="startResize($event, 'text', index, 'w')"></div>
+                                    <div class="absolute -right-1 z-20 h-3 w-3 bg-primary rounded-sm border border-white shadow pointer-events-auto"
+                                        style="top: 50%; transform: translateY(-50%); cursor: ew-resize;"
+                                        @mousedown.stop.prevent="startResize($event, 'text', index, 'e')"></div>
+                                    <div class="absolute -top-1 z-20 h-3 w-3 bg-primary rounded-sm border border-white shadow pointer-events-auto"
+                                        style="left: 50%; transform: translateX(-50%); cursor: ns-resize;"
+                                        @mousedown.stop.prevent="startResize($event, 'text', index, 'n')"></div>
+                                    <div class="absolute -bottom-1 z-20 h-3 w-3 bg-primary rounded-sm border border-white shadow pointer-events-auto"
+                                        style="left: 50%; transform: translateX(-50%); cursor: ns-resize;"
+                                        @mousedown.stop.prevent="startResize($event, 'text', index, 's')"></div>
                                     <div class="absolute -left-1 -top-1 h-2.5 w-2.5 bg-primary rounded-sm border border-white cursor-nwse-resize"
                                         @mousedown.prevent="startResize($event, 'text', index, 'nw')"></div>
                                     <div class="absolute -right-1 -top-1 h-2.5 w-2.5 bg-primary rounded-sm border border-white cursor-nesw-resize"
@@ -955,6 +967,108 @@
                         }
                     },
 
+                    getElementWidthMm(element) {
+                        const page = this.getPageDimensionsMm();
+                        let widthMm = parseFloat(element.width);
+                        if (!Number.isFinite(widthMm) || widthMm <= 0) {
+                            const percent = parseFloat(element.auto_width_percent);
+                            if (Number.isFinite(percent) && percent > 0) {
+                                widthMm = page.width * (percent / 100);
+                            } else {
+                                widthMm = 40;
+                            }
+                        }
+                        return Math.max(widthMm, 10);
+                    },
+
+                    getDisplayText(element) {
+                        const raw = (element?.text ?? '').toString();
+                        return raw.replace(/\{(\w+)\}/g, (match, key) => {
+                            const value = this.sampleData?.[key];
+                            return value === undefined || value === null ? match : String(value);
+                        });
+                    },
+
+                    measureTextLines(text, widthPx, fontFamily, fontSizePt) {
+                        const safeText = (text ?? '').toString();
+                        if (widthPx <= 0) {
+                            return { lines: 1, lineHeightPx: 0 };
+                        }
+                        if (!this._measureCanvas) {
+                            this._measureCanvas = document.createElement('canvas');
+                        }
+                        const context = this._measureCanvas.getContext('2d');
+                        const fontPx = Math.max(8, (parseFloat(fontSizePt) || 12) * 1.333);
+                        context.font = `${fontPx}px ${fontFamily || 'Arial'}`;
+                        const lineHeightPx = fontPx * 1.2;
+
+                        const paragraphs = safeText.split(/\r?\n/);
+                        let lines = 0;
+
+                        paragraphs.forEach((para) => {
+                            const words = para.split(' ');
+                            let line = '';
+                            words.forEach((word) => {
+                                const testLine = line ? `${line} ${word}` : word;
+                                const width = context.measureText(testLine).width;
+                                if (width <= widthPx || line === '') {
+                                    line = testLine;
+                                } else {
+                                    lines += 1;
+                                    line = word;
+                                }
+                            });
+                            lines += 1;
+                        });
+
+                        return { lines, lineHeightPx };
+                    },
+
+                    fitTextToBox(index, options = {}) {
+                        if (!this.overlayScale || this.overlayScale <= 0) return;
+                        const element = this.textElements[index];
+                        if (!element) return;
+                        const mode = options.mode || 'growBox';
+                        const widthMm = this.getElementWidthMm(element);
+                        const widthPx = widthMm * this.overlayScale;
+                        const text = this.getDisplayText(element);
+                        const fontFamily = element.font_family || 'Arial';
+
+                        if (mode === 'fitFont') {
+                            const heightMm = parseFloat(element.height) || 10;
+                            const heightPx = heightMm * this.overlayScale;
+                            const minSize = 6;
+                            const maxSize = Math.max(parseFloat(element.font_size) || 12, 72);
+                            let low = minSize;
+                            let high = maxSize;
+                            let best = minSize;
+
+                            while (low <= high) {
+                                const mid = Math.floor((low + high) / 2);
+                                const result = this.measureTextLines(text, widthPx, fontFamily, mid);
+                                const needed = Math.max(result.lines, 1) * result.lineHeightPx;
+                                if (needed <= heightPx) {
+                                    best = mid;
+                                    low = mid + 1;
+                                } else {
+                                    high = mid - 1;
+                                }
+                            }
+
+                            element.font_size = best;
+                            const final = this.measureTextLines(text, widthPx, fontFamily, best);
+                            element.multicell = final.lines > 1;
+                            return;
+                        }
+
+                        const fontSize = element.font_size || 12;
+                        const result = this.measureTextLines(text, widthPx, fontFamily, fontSize);
+                        const heightPx = Math.max(result.lines, 1) * result.lineHeightPx;
+                        const heightMm = heightPx / this.overlayScale;
+                        element.height = parseFloat(Math.max(heightMm, 6).toFixed(1));
+                        element.multicell = result.lines > 1;
+                    },
+
                     isEditingInput(target) {
                         if (!target) return false;
                         const tag = target.tagName ? target.tagName.toLowerCase() : '';
@@ -1310,6 +1424,9 @@
 
                     startResize(event, type, index, direction = 'se') {
                         if (!this.enableDrag) return;
+                        if (event && typeof event.stopPropagation === 'function') {
+                            event.stopPropagation();
+                        }
                         this.setActiveElement(type, index);
                         this.pushHistory();
                         const startX = event.clientX;
@@ -1374,6 +1491,7 @@
                                 this.textElements[index].height = newHeight;
                                 this.textElements[index].x = newX;
                                 this.textElements[index].y = newY;
+                                this.fitTextToBox(index, { mode: 'fitFont' });
                             } else if (type === 'qr') {
                                 this.qrWidth = newWidth;
                                 this.qrHeight = newHeight;
@@ -1391,6 +1509,9 @@
                             window.removeEventListener('mousemove', onMove);
                             window.removeEventListener('mouseup', onUp);
                             this.clampAllPositions();
+                            if (type === 'text' && typeof index === 'number') {
+                                this.fitTextToBox(index, { mode: 'fitFont' });
+                            }
                             this.scheduleAutoSave();
                             this.refreshPreview(true);
                         };
@@ -1471,6 +1592,7 @@
                         });
 
                         this.setActiveElement('text', this.textElements.length - 1);
+                        this.fitTextToBox(this.textElements.length - 1, { mode: 'growBox' });
                         this.refreshPreview(true);
                         this.scheduleAutoSave();
                         this.showNotification('Variable agregada al documento', 'success');
@@ -1489,6 +1611,7 @@
                         if (!element.name || element.name === 'nuevo_elemento') {
                             element.name = next.slice(0, 24) || element.name;
                         }
+                        this.fitTextToBox(index, { mode: 'growBox' });
                         this.refreshPreview(true);
                         this.scheduleAutoSave();
                     },
@@ -1508,6 +1631,7 @@
                             fill_color: '#FFFFFF',
                             fill: false
                         });
+                        this.fitTextToBox(this.textElements.length - 1, { mode: 'growBox' });
                         this.refreshPreview();
                         this.showNotification('Elemento de texto agregado', 'success');
                     },
