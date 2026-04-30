@@ -22,6 +22,21 @@ class CertificateVerificationController extends Controller
 
     public function preview(Request $request, string $uuid)
     {
+        $startTime = microtime(true);
+        
+        // 1. Intentar servir desde caché inmediatamente (lo más rápido)
+        if ($request->query('format') === 'png') {
+            $previewPath = "previews/{$uuid}.png";
+            if (Storage::disk('local')->exists($previewPath)) {
+                $png = Storage::disk('local')->get($previewPath);
+                return response($png, 200, [
+                    'Content-Type' => 'image/png',
+                    'Cache-Control' => 'public, max-age=3600',
+                ]);
+            }
+        }
+
+        // 2. Si no hay caché, procesar (lento)
         $certificate = Certificate::with(['documentConfiguration.event'])
             ->where('uuid', $uuid)
             ->firstOrFail();
@@ -38,34 +53,39 @@ class CertificateVerificationController extends Controller
 
         if ($request->query('format') === 'png') {
             if (!class_exists(\Imagick::class)) {
-                return response()->json([
-                    'message' => 'Imagick no está disponible en el servidor.'
-                ], 501);
+                return response()->json(['message' => 'Imagick no disponible'], 501);
             }
 
-            $tmpDir = storage_path('app/tmp');
-            if (!is_dir($tmpDir)) {
-                mkdir($tmpDir, 0755, true);
-            }
-
-            $tmpPdf = $tmpDir . '/verify_' . $certificate->id . '_' . uniqid() . '.pdf';
+            $tmpPdf = storage_path('app/tmp/v_' . $uuid . '.pdf');
+            if (!is_dir(dirname($tmpPdf))) mkdir(dirname($tmpPdf), 0755, true);
             file_put_contents($tmpPdf, $pdfContent);
 
-            $imagick = new \Imagick();
-            $imagick->setResolution(150, 150);
-            $imagick->readImage($tmpPdf . '[0]');
-            $imagick->setImageBackgroundColor('white');
-            $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
-            $imagick->setImageFormat('png');
-            $png = $imagick->getImageBlob();
-            $imagick->clear();
-            $imagick->destroy();
-            @unlink($tmpPdf);
+            try {
+                $imagick = new \Imagick();
+                // Resolución baja para rasterización rápida
+                $imagick->setResolution(72, 72);
+                $imagick->readImage($tmpPdf . '[0]');
+                $imagick->setImageBackgroundColor('white');
+                $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
+                $imagick->setImageFormat('png');
+                $imagick->resizeImage(800, 0, \Imagick::FILTER_LANCZOS, 1);
+                
+                $png = $imagick->getImageBlob();
+                Storage::disk('local')->put("previews/{$uuid}.png", $png);
 
-            return response($png, 200, [
-                'Content-Type' => 'image/png',
-                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
-            ]);
+                $imagick->clear();
+                $imagick->destroy();
+                
+                $totalTime = round((microtime(true) - $startTime) * 1000);
+                \Log::error("PREVIEW GENERADO: UUID {$uuid} en {$totalTime}ms");
+            } catch (\Exception $e) {
+                \Log::error("ERROR PREVIEW: " . $e->getMessage());
+                throw $e;
+            } finally {
+                @unlink($tmpPdf);
+            }
+
+            return response($png, 200, ['Content-Type' => 'image/png']);
         }
 
         return response($pdfContent, 200, [

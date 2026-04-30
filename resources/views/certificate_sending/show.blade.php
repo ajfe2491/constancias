@@ -159,8 +159,24 @@
                 <div class="card bg-base-100 shadow-md">
                     <div class="card-body">
                         <div class="flex items-center justify-between">
-                            <h3 class="card-title text-sm">Constancias generadas</h3>
-                            <span class="text-xs opacity-70">{{ $certificates->total() }} registros</span>
+                            <div class="flex items-center gap-3">
+                                <h3 class="card-title text-sm">Constancias generadas</h3>
+                                <span class="text-xs opacity-70">{{ $certificates->total() }} registros</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                @if($isOwner && $certificates->isNotEmpty())
+                                    <button type="button" class="btn btn-primary btn-sm gap-2"
+                                        onclick="document.getElementById('preview-modal').showModal()">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        Previsualizar Datos
+                                    </button>
+                                @endif
+                            </div>
                         </div>
                         <p class="text-xs opacity-60 mb-3">
                             Para no sobrecargar, las previsualizaciones se cargan bajo demanda.
@@ -197,7 +213,7 @@
                                                         <span class="badge badge-info badge-xs">Compartida contigo</span>
                                                     @endif
                                                 </td>
-                                                <td class="space-x-2">
+                                                <td class="space-x-1">
                                                     <a href="{{ route('certificates.verify', $certificate->uuid) }}"
                                                         target="_blank" class="btn btn-ghost btn-xs">Verificar</a>
                                                     @if($isOwner)
@@ -363,11 +379,12 @@
                             </h3>
                             <p class="text-xs opacity-70">Diseño base de la constancia a enviar</p>
                         </div>
-                        <div class="bg-base-200 flex-1 flex items-center justify-center relative min-h-[400px]">
+                        <div class="bg-base-200 flex-1 flex items-center justify-center relative min-h-[400px] p-4">
                             @if($isOwner && $history->documentConfiguration)
-                                <iframe
-                                    src="{{ route('document-configurations.stream-pdf', $history->documentConfiguration) }}#toolbar=0&navpanes=0&scrollbar=0&view=Fit"
-                                    class="absolute inset-0 w-full h-full" frameborder="0"></iframe>
+                                <img src="{{ route('document-configurations.preview', $history->documentConfiguration) }}?format=png"
+                                    class="max-w-full h-auto shadow-md rounded" 
+                                    alt="Vista previa del diseño"
+                                    loading="lazy">
                             @else
                                 <div class="text-center p-6 opacity-50">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-2" fill="none"
@@ -385,6 +402,120 @@
         </div>
     </div>
 
+    @if($isOwner && $certificates->isNotEmpty())
+        @php
+            $sensitiveKeys = ['qr_path', 'folio_number', 'folio', 'email', 'uuid', 'id', 'certificate_url'];
+            $previewData = collect($certificates->items())->map(function ($cert) use ($sensitiveKeys) {
+                $filteredData = collect($cert->recipient_data ?? [])
+                    ->except($sensitiveKeys)
+                    ->filter(fn($value) => $value !== null && $value !== '');
+                return [
+                    'folio' => $cert->folio,
+                    'email' => $cert->recipient_email,
+                    'uuid' => $cert->uuid,
+                    'data' => $filteredData->toArray(),
+                ];
+            })->values();
+        @endphp
+
+        <dialog id="preview-modal" class="modal" x-data="previewNavigator">
+            <div class="modal-box max-w-4xl max-h-[85vh]">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="font-bold text-lg">Previsualización</h3>
+                        <p class="text-sm opacity-70" x-text="'Registro ' + (currentIndex + 1) + ' de ' + certificates.length"></p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <template x-if="currentCertificate && viewMode === 'preview'">
+                            <a :href="'/verificar/' + currentCertificate.uuid" target="_blank"
+                                class="btn btn-sm btn-outline gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Descargar PDF
+                            </a>
+                        </template>
+                        <button class="btn btn-sm btn-circle btn-ghost" onclick="document.getElementById('preview-modal').close()">✕</button>
+                    </div>
+                </div>
+
+                <div class="tabs tabs-boxed mb-4">
+                    <a class="tab" :class="viewMode === 'data' ? 'tab-active' : ''" x-on:click="viewMode = 'data'">Datos</a>
+                    <a class="tab" :class="viewMode === 'preview' ? 'tab-active' : ''" x-on:click="viewMode = 'preview'; isLoadingImage = true">Documento</a>
+                </div>
+
+                <template x-if="currentCertificate">
+                    <div>
+                        <div x-show="viewMode === 'data'">
+                            <div class="grid grid-cols-2 gap-2 text-sm mb-4">
+                                <div class="bg-base-200 rounded-lg p-3">
+                                    <span class="text-xs opacity-60 block">Folio</span>
+                                    <span class="font-mono font-bold" x-text="currentCertificate.folio"></span>
+                                </div>
+                                <div class="bg-base-200 rounded-lg p-3">
+                                    <span class="text-xs opacity-60 block">Email</span>
+                                    <span class="font-mono" x-text="currentCertificate.email"></span>
+                                </div>
+                            </div>
+                            <div class="divider text-xs">Variables</div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <template x-for="(value, key) in currentCertificate.data" :key="key">
+                                    <div class="bg-base-200 rounded-lg p-3 text-sm">
+                                        <span class="text-xs opacity-60 block" x-text="key.replace(/_/g, ' ')"></span>
+                                        <span class="font-medium" x-text="value || '—'"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div x-show="viewMode === 'preview'" class="relative min-h-[500px] flex items-center justify-center bg-base-200/30 rounded-lg overflow-hidden">
+                            <!-- Spinner de carga -->
+                            <div x-show="isLoadingImage" class="absolute inset-0 flex flex-col items-center justify-center bg-base-100/50 z-20">
+                                <span class="loading loading-spinner loading-lg text-primary"></span>
+                                <p class="text-xs mt-2 font-medium opacity-70">Generando vista previa...</p>
+                            </div>
+
+                            <!-- Imagen PNG del preview -->
+                            <img :src="'/verificar/' + currentCertificate.uuid + '/preview?format=png'"
+                                x-on:load="isLoadingImage = false"
+                                x-on:error="isLoadingImage = false"
+                                class="max-w-full h-auto shadow-lg transition-all duration-500"
+                                :class="isLoadingImage ? 'opacity-0 scale-95' : 'opacity-100 scale-100'"
+                                alt="Vista previa del documento" />
+                        </div>
+                    </div>
+                </template>
+
+                <div class="flex justify-between mt-4">
+                    <button class="btn btn-outline btn-sm" :disabled="!canPrev" x-on:click="prev()">
+                        ← Anterior
+                    </button>
+                    <button class="btn btn-outline btn-sm" :disabled="!canNext" x-on:click="next()">
+                        Siguiente →
+                    </button>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
+
+        <script>
+            document.addEventListener('alpine:init', () => {
+                Alpine.data('previewNavigator', () => ({
+                    certificates: @js($previewData),
+                    currentIndex: 0,
+                    viewMode: 'data',
+                    isLoadingImage: false,
+                    get currentCertificate() { return this.certificates[this.currentIndex] || null },
+                    get canPrev() { return this.currentIndex > 0 },
+                    get canNext() { return this.currentIndex < this.certificates.length - 1 },
+                    prev() { if (this.canPrev) { this.currentIndex--; this.isLoadingImage = true; } },
+                    next() { if (this.canNext) { this.currentIndex++; this.isLoadingImage = true; } }
+                }));
+            });
+        </script>
+    @endif
     <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('sendingStatus', (initial) => ({
@@ -434,6 +565,8 @@
 
                         if (this.completed && this.poller) {
                             clearInterval(this.poller);
+                            // Recargar la página automáticamente para que la tabla de constancias generadas aparezca
+                            setTimeout(() => window.location.reload(), 1500);
                         }
                     } catch (error) {
                         console.error('No se pudo actualizar el estado', error);

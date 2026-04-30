@@ -12,23 +12,40 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
+        $isAdmin = $user->isSuperAdmin() || $user->hasRole('admin');
+
+        // Base queries with permission scopes
+        $historyQuery = ConstancyGeneralHistory::query();
+        $eventQuery = Event::query();
+        $configQuery = DocumentConfiguration::query();
+
+        if (!$isAdmin) {
+            $historyQuery->visibleTo($user);
+            $eventQuery->visibleTo($user);
+            $configQuery->visibleTo($user);
+        }
+
         // KPIs
-        $totalCertificates = ConstancyGeneralHistory::sum('procesados_exitosos');
-        $activeEvents = Event::where('is_active', true)->count();
-        $totalTemplates = DocumentConfiguration::count();
-        $totalUsers = User::count();
-        $inactiveEvents = Event::where('is_active', false)->count();
-        $totalBatches = ConstancyGeneralHistory::count();
-        $lastBatchAt = ConstancyGeneralHistory::latest()->value('created_at');
-        $certificatesToday = ConstancyGeneralHistory::whereDate('created_at', now()->toDateString())
+        $totalCertificates = (clone $historyQuery)->sum('procesados_exitosos');
+        $activeEvents = (clone $eventQuery)->where('is_active', true)->count();
+        $totalTemplates = $configQuery->count();
+        $totalUsers = $isAdmin ? User::count() : 1;
+        $inactiveEvents = (clone $eventQuery)->where('is_active', false)->count();
+        $totalBatches = (clone $historyQuery)->count();
+        
+        $lastBatchAt = (clone $historyQuery)->latest()->value('created_at');
+        
+        $certificatesToday = (clone $historyQuery)->whereDate('created_at', now()->toDateString())
             ->sum('procesados_exitosos');
-        $certificatesThisMonth = ConstancyGeneralHistory::whereBetween('created_at', [
+            
+        $certificatesThisMonth = (clone $historyQuery)->whereBetween('created_at', [
             now()->startOfMonth(),
             now()->endOfMonth(),
         ])->sum('procesados_exitosos');
 
         // Recent Activity
-        $recentBatches = ConstancyGeneralHistory::with(['user', 'documentConfiguration'])
+        $recentBatches = (clone $historyQuery)->with(['user', 'documentConfiguration'])
             ->latest()
             ->take(5)
             ->get();
@@ -36,8 +53,7 @@ class DashboardController extends Controller
         // --- Chart Data ---
 
         // 1. Monthly Trends (Last 6 months)
-        // Group by Year-Month and sum successful processed
-        $monthlyStats = ConstancyGeneralHistory::select(
+        $monthlyStats = (clone $historyQuery)->select(
             \Illuminate\Support\Facades\DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
             \Illuminate\Support\Facades\DB::raw('SUM(procesados_exitosos) as total')
         )
@@ -52,31 +68,36 @@ class DashboardController extends Controller
         $monthlyCounts = $monthlyStats->pluck('total');
 
         // 2. Events Distribution
-        // Join history -> config -> event to count certificates per event
-        $eventStats = ConstancyGeneralHistory::join('document_configurations', 'constancy_general_history.document_configuration_id', '=', 'document_configurations.id')
+        $eventStats = (clone $historyQuery)
+            ->join('document_configurations', 'constancy_general_history.document_configuration_id', '=', 'document_configurations.id')
             ->join('events', 'document_configurations.event_id', '=', 'events.id')
             ->select('events.name', \Illuminate\Support\Facades\DB::raw('SUM(constancy_general_history.procesados_exitosos) as total'))
             ->groupBy('events.name')
             ->orderByDesc('total')
-            ->take(5) // Top 5 events
+            ->take(5)
             ->get();
 
         $eventLabels = $eventStats->pluck('name');
         $eventCounts = $eventStats->pluck('total');
 
         // 3. Global Success Rate
-        $totalRecords = ConstancyGeneralHistory::sum('total_registros');
-        $totalSuccess = ConstancyGeneralHistory::sum('procesados_exitosos');
+        $totalRecords = (clone $historyQuery)->sum('total_registros');
+        $totalSuccess = (clone $historyQuery)->sum('procesados_exitosos');
         $globalSuccessRate = $totalRecords > 0 ? round(($totalSuccess / $totalRecords) * 100, 1) : 0;
 
-        $last30Records = ConstancyGeneralHistory::where('created_at', '>=', now()->subDays(30))
-            ->sum('total_registros');
-        $last30Success = ConstancyGeneralHistory::where('created_at', '>=', now()->subDays(30))
-            ->sum('procesados_exitosos');
-        $last30SuccessRate = $last30Records > 0 ? round(($last30Success / $last30Records) * 100, 1) : 0;
+        $last30Stats = (clone $historyQuery)->where('created_at', '>=', now()->subDays(30))
+            ->select(
+                \Illuminate\Support\Facades\DB::raw('SUM(total_registros) as total'),
+                \Illuminate\Support\Facades\DB::raw('SUM(procesados_exitosos) as success')
+            )->first();
+            
+        $last30SuccessRate = ($last30Stats && $last30Stats->total > 0) 
+            ? round(($last30Stats->success / $last30Stats->total) * 100, 1) 
+            : 0;
 
         // 4. Certificates by Event Type
-        $eventTypeStats = ConstancyGeneralHistory::join('document_configurations', 'constancy_general_history.document_configuration_id', '=', 'document_configurations.id')
+        $eventTypeStats = (clone $historyQuery)
+            ->join('document_configurations', 'constancy_general_history.document_configuration_id', '=', 'document_configurations.id')
             ->join('events', 'document_configurations.event_id', '=', 'events.id')
             ->select('events.type', \Illuminate\Support\Facades\DB::raw('SUM(constancy_general_history.procesados_exitosos) as total'))
             ->groupBy('events.type')
@@ -86,8 +107,8 @@ class DashboardController extends Controller
         $eventTypeLabels = $eventTypeStats->pluck('type');
         $eventTypeCounts = $eventTypeStats->pluck('total');
 
-        // 5. Failure Analysis (Top 5 recent batches with failures)
-        $failureStats = ConstancyGeneralHistory::select('created_at', 'procesados_fallidos', 'total_registros')
+        // 5. Failure Analysis
+        $failureStats = (clone $historyQuery)->select('created_at', 'procesados_fallidos', 'total_registros')
             ->where('procesados_fallidos', '>', 0)
             ->latest()
             ->take(5)

@@ -89,13 +89,13 @@ class DocumentConfiguration extends Model
         }
 
         return $query->where(function (Builder $builder) use ($user) {
-            $builder->where('user_id', $user->id)
+            $builder->where($this->getTable() . '.user_id', $user->id)
                 ->orWhereHas('sharedUsers', function (Builder $shared) use ($user) {
                     $shared->where('users.id', $user->id);
                 })
                 ->orWhereHas('event', function (Builder $event) use ($user) {
                     $event->where(function (Builder $eventQuery) use ($user) {
-                        $eventQuery->where('user_id', $user->id)
+                        $eventQuery->where('events.user_id', $user->id)
                             ->orWhereHas('sharedUsers', function (Builder $shared) use ($user) {
                                 $shared->where('users.id', $user->id);
                             });

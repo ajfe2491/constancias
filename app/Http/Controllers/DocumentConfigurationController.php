@@ -388,11 +388,15 @@ class DocumentConfigurationController extends Controller
             file_put_contents($tmpPdf, $pdfContent);
 
             $imagick = new \Imagick();
-            $imagick->setResolution(150, 150);
+            $imagick->setResolution(96, 96);
             $imagick->readImage($tmpPdf . '[0]');
             $imagick->setImageBackgroundColor('white');
             $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
             $imagick->setImageFormat('png');
+            
+            // Optimización: Redimensionar para pantalla
+            $imagick->resizeImage(800, 0, \Imagick::FILTER_LANCZOS, 1);
+            
             $png = $imagick->getImageBlob();
             $imagick->clear();
             $imagick->destroy();

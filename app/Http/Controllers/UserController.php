@@ -35,8 +35,8 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique(User::class, 'name')],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
+            'name' => ['required', 'string', 'max:255', Rule::unique(User::class, 'name')->whereNull('deleted_at')],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class, 'email')->whereNull('deleted_at')],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'roles' => ['required', 'array'],
         ]);
@@ -67,8 +67,8 @@ class UserController extends Controller
     public function update(Request $request, User $user)
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique(User::class, 'name')->ignore($user->id)],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class . ',email,' . $user->id],
+            'name' => ['required', 'string', 'max:255', Rule::unique(User::class, 'name')->whereNull('deleted_at')->ignore($user->id)],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class, 'email')->whereNull('deleted_at')->ignore($user->id)],
             'roles' => ['required', 'array'],
         ]);
 

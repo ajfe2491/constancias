@@ -54,7 +54,7 @@ class Event extends Model
         }
 
         return $query->where(function (Builder $builder) use ($user) {
-            $builder->where('user_id', $user->id)
+            $builder->where($this->getTable() . '.user_id', $user->id)
                 ->orWhereHas('sharedUsers', function (Builder $shared) use ($user) {
                     $shared->where('users.id', $user->id);
                 });

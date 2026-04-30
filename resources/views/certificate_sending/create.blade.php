@@ -77,20 +77,31 @@
 
                         <div x-show="step === 1" class="space-y-6">
                             <div class="form-control w-full">
-                                <label class="label">
-                                    <span class="label-text font-bold text-lg">1. Selecciona la Configuración del Documento</span>
-                                </label>
-                                <p class="text-sm opacity-70 mb-4">Elige el tipo de constancia para habilitar su plantilla y variables.</p>
-
-                                <select name="document_configuration_id" id="document_configuration_id" class="select select-bordered w-full"
-                                    required x-model="configId">
-                                    <option value="" disabled selected>Selecciona una configuración...</option>
-                                    @foreach($configurations as $config)
-                                        <option value="{{ $config->id }}">
-                                            {{ $config->document_name }} ({{ $config->event ? $config->event->name : 'Genérico' }})
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="form-control w-full">
+                                        <label class="label">
+                                            <span class="label-text font-bold">Evento</span>
+                                        </label>
+                                        <select class="select select-bordered w-full" x-model="eventId">
+                                            <option value="">Todos los eventos</option>
+                                            @foreach($events as $event)
+                                                <option value="{{ $event->id }}">{{ $event->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="form-control w-full">
+                                        <label class="label">
+                                            <span class="label-text font-bold">Configuración del Documento</span>
+                                        </label>
+                                        <select name="document_configuration_id" id="document_configuration_id" class="select select-bordered w-full"
+                                            required x-model="configId">
+                                            <option value="" disabled selected>Selecciona una configuración...</option>
+                                            <template x-for="config in filteredConfigurations" :key="config.id">
+                                                <option :value="config.id" x-text="config.name + ' (' + (config.event || 'Genérico') + ')'"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </div>
 
                                 <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                     <div class="text-xs opacity-60" x-show="!configId">
@@ -221,18 +232,27 @@
                         @csrf
                         <input type="hidden" name="mode" value="single" />
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="form-control w-full">
+                                <label class="label">
+                                    <span class="label-text font-bold">Evento</span>
+                                </label>
+                                <select class="select select-bordered w-full" x-model="eventId">
+                                    <option value="">Todos los eventos</option>
+                                    @foreach($events as $event)
+                                        <option value="{{ $event->id }}">{{ $event->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="form-control w-full">
                                 <label class="label">
                                     <span class="label-text font-bold">Configuración de constancia</span>
                                 </label>
                                 <select name="document_configuration_id" class="select select-bordered w-full" required x-model="configId">
                                     <option value="" disabled selected>Selecciona una configuración...</option>
-                                    @foreach($configurations as $config)
-                                        <option value="{{ $config->id }}">
-                                            {{ $config->document_name }} ({{ $config->event ? $config->event->name : 'Genérico' }})
-                                        </option>
-                                    @endforeach
+                                    <template x-for="config in filteredConfigurations" :key="config.id">
+                                        <option :value="config.id" x-text="config.name + ' (' + (config.event || 'Genérico') + ')'"></option>
+                                    </template>
                                 </select>
                                 @error('document_configuration_id')
                                     <label class="label">
@@ -305,7 +325,12 @@
                 mode: 'bulk',
                 step: 1,
                 configId: '',
+                eventId: '',
                 configs: @json($configurationMeta),
+                get filteredConfigurations() {
+                    if (!this.eventId) return this.configs;
+                    return this.configs.filter(c => c.event_id == this.eventId);
+                },
                 get templateUrl() {
                     return '{{ route('certificate-sending.template', ':id') }}'.replace(':id', this.configId);
                 },

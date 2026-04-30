@@ -13,23 +13,19 @@ echo "Nota: Compila, construye local y transfiere la imagen al servidor."
 echo "      No toca BD/Redis ni volúmenes."
 
 # 1. Credentials
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_rsa}"
-if [ ! -f "$SSH_KEY" ]; then
-    echo "Error: no se encontró la llave SSH en $SSH_KEY"
-    echo "Configura una llave SSH o exporta SSH_KEY=/ruta/a/llave"
-    exit 1
-fi
-
 read -s -p "Introduce la contraseña SUDO (para elevación de privilegios en servidor): " SUDO_PASS
 echo ""
 
 # 1.8 Build Frontend Assets
 echo ">> [1/7] Compilando assets frontend (npm run build)..."
-npm run build
-
-if [ $? -ne 0 ]; then
-    echo "Error: Falló la compilación de assets."
-    exit 1
+if command -v npm &> /dev/null; then
+    npm run build
+    if [ $? -ne 0 ]; then
+        echo "Error: Falló la compilación de assets."
+        exit 1
+    fi
+else
+    echo "Advertencia: npm no está instalado localmente. Se omitirá."
 fi
 
 # 2. Build (Local)

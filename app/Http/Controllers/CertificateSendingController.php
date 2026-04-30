@@ -48,8 +48,15 @@ class CertificateSendingController extends Controller
      */
     public function create()
     {
+        $user = Auth::user();
+        
+        $events = \App\Models\Event::visibleTo($user)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
         $configurations = DocumentConfiguration::where('is_active', true)
-            ->visibleTo(Auth::user())
+            ->visibleTo($user)
             ->with('event')
             ->latest()
             ->get();
@@ -59,6 +66,7 @@ class CertificateSendingController extends Controller
                 'id' => $config->id,
                 'name' => $config->document_name,
                 'event' => $config->event?->name,
+                'event_id' => $config->event_id,
                 'placeholders' => $this->extractPlaceholders($config),
                 'sample_data' => $config->sample_data ?? [],
             ];
@@ -67,6 +75,7 @@ class CertificateSendingController extends Controller
         return view('certificate_sending.create', [
             'configurations' => $configurations,
             'configurationMeta' => $configurationMeta,
+            'events' => $events,
         ]);
     }
 
