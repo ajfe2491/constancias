@@ -44,7 +44,7 @@
 
     <!-- Full Screen Editor Layout -->
     <div class="flex flex-col h-[calc(100vh-65px)]"
-        x-data="editor('{{ route('document-configurations.preview', $documentConfiguration) }}?format=png', '{{ route('document-configurations.update', $documentConfiguration) }}')">
+        x-data="editor('{{ route('document-configurations.preview', $documentConfiguration) }}?format=jpg', '{{ route('document-configurations.update', $documentConfiguration) }}')">
 
         <!-- Top Bar: Sample Variables -->
         <div class="bg-base-100 border-b border-base-300 p-2 flex gap-4 items-center flex-wrap shrink-0 min-h-12">
@@ -59,19 +59,19 @@
             <div class="flex gap-2 items-center flex-wrap">
                 <template x-for="(value, key) in sampleData" :key="key">
                     <div class="join shadow-sm tooltip tooltip-bottom"
-                        :data-tip="key === 'folio' ? 'Formato: [ClaveEvento]-[Año]-[Folio]' : 'Usa: {' + key + '}'">
+                        :data-tip="key === 'folio' ? 'Formato: [ClaveEvento]-[Año]-[Folio]' : 'Importante: Usa {' + key + '} con llaves'">
                         <button type="button"
                             draggable="true"
                             @dragstart="startVariableDrag($event, key)"
-                            @click="navigator.clipboard.writeText('{' + key + '}'); $event.target.classList.add('btn-success'); setTimeout(() => $event.target.classList.remove('btn-success'), 500)"
+                            @click="addTextElementAt(key, 50, 50); $event.target.classList.add('btn-success'); setTimeout(() => $event.target.classList.remove('btn-success'), 500)"
                             class="join-item btn btn-xs btn-ghost font-mono text-[10px] px-1 bg-base-200 border-base-300 hover:bg-base-300"
-                            :title="'Arrastra o da click para copiar {' + key + '}'">
+                            :title="'Arrastra o da click para agregar {' + key + '}'">
                             <span x-text="key"></span>
                         </button>
                         <input type="text" x-model="sampleData[key]"
                             class="join-item input input-bordered input-xs text-[10px] w-24 focus:w-40 transition-all"
                             @change="refreshPreview()" :name="'sample_data[' + key + ']'" />
-                        <button type="button" @click="delete sampleData[key]; refreshPreview()"
+                        <button type="button" @click="removeVariable(key)"
                             class="join-item btn btn-xs btn-ghost text-error px-1">
                             &times;
                         </button>
@@ -93,7 +93,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span class="text-[9px]">Click o arrastra para insertar</span>
+                    <span class="text-[9px]">Da click para agregar o arrastra. Usa llaves: {variable}</span>
                 </div>
             </div>
         </div>
@@ -103,60 +103,103 @@
             <!-- Left Pane: Preview -->
             <div style="width: 70%;"
                 class="shrink-0 bg-gray-100 dark:bg-gray-900 p-4 flex flex-col border-r border-base-300 relative">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="font-bold text-sm uppercase tracking-wide opacity-70">Vista Previa</h3>
-                    <div class="flex items-center gap-2">
-                        <label class="label cursor-pointer gap-2 py-0">
-                            <span class="label-text text-[10px]">Arrastrar elementos</span>
-                            <input type="checkbox" class="toggle toggle-xs toggle-primary"
-                                x-model="enableDrag" />
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-base-300">
+                    <div class="flex items-center gap-1.5">
+                        <h3 class="font-bold text-xs uppercase tracking-wide !text-black dark:!text-white">Vista Previa</h3>
+                    </div>
+                    <div class="flex items-center flex-wrap gap-1.5 text-[10px]">
+                        <!-- Drag Toggle -->
+                        <label class="label cursor-pointer gap-1.5 py-0 px-0.5">
+                            <span class="label-text text-[10px] font-bold !text-black dark:!text-white">Arrastrar</span>
+                            <input type="checkbox" class="toggle toggle-xs toggle-primary" x-model="enableDrag" />
                         </label>
-                        <div class="flex items-center gap-1 text-[10px] opacity-60">
-                            <button type="button" @click="undo()" class="btn btn-ghost btn-xs min-h-0 h-6 px-1"
-                                title="Deshacer (Ctrl+Z)">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 14l-4-4 4-4" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 10h9a5 5 0 015 5v1" />
-                                </svg>
-                                <span class="ml-1">Ctrl+Z</span>
+                        
+                        <div class="h-3.5 w-px bg-base-300"></div>
+                        
+                        <!-- Undo Button -->
+                        <button type="button" @click="undo()" class="btn btn-ghost btn-xs min-h-0 h-6 px-1.5 !text-black dark:!text-white font-bold hover:bg-base-200" title="Deshacer (Ctrl+Z)">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 14l-4-4 4-4" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 10h9a5 5 0 015 5v1" />
+                            </svg>
+                            <span class="text-[9px]">Ctrl+Z</span>
+                        </button>
+
+                        <div class="h-3.5 w-px bg-base-300"></div>
+
+                        <!-- Redo Button -->
+                        <button type="button" @click="redo()" class="btn btn-ghost btn-xs min-h-0 h-6 px-1.5 !text-black dark:!text-white font-bold hover:bg-base-200" title="Rehacer (Ctrl+Y)">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 14l4-4-4-4" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 10H10a5 5 0 00-5 5v1" />
+                            </svg>
+                            <span class="text-[9px]">Ctrl+Y</span>
+                        </button>
+
+                        <div class="h-3.5 w-px bg-base-300"></div>
+
+                        <!-- Delete Button -->
+                        <button type="button" @click="deleteActiveElement()" class="btn btn-ghost btn-xs min-h-0 h-6 px-1.5 !text-error font-bold hover:bg-error/10" title="Eliminar (Supr)">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 11v6M14 11v6" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7l1 12a1 1 0 001 1h4a1 1 0 001-1l1-12" />
+                            </svg>
+                            <span class="text-[9px]">Supr</span>
+                        </button>
+
+                        <div class="h-3.5 w-px bg-base-300"></div>
+
+                        <!-- Zoom Controls Segmented Control -->
+                        <div class="flex items-center join bg-base-200 border border-base-300 p-0.5 rounded">
+                            <button type="button" @click="setZoom(1)" 
+                                class="btn btn-ghost btn-xs join-item min-h-0 h-5 px-1.5 text-[9px] border-none font-bold"
+                                :class="zoom === 1 ? '!bg-primary !text-white' : '!text-black dark:!text-white hover:bg-base-300'">
+                                Ajustar
                             </button>
-                            <span class="opacity-40">|</span>
-                            <button type="button" @click="redo()" class="btn btn-ghost btn-xs min-h-0 h-6 px-1"
-                                title="Rehacer (Ctrl+Y)">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 14l4-4-4-4" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 10H10a5 5 0 00-5 5v1" />
-                                </svg>
-                                <span class="ml-1">Ctrl+Y</span>
+                            <button type="button" @click="setZoom(1.5)" 
+                                class="btn btn-ghost btn-xs join-item min-h-0 h-5 px-1.5 text-[9px] border-none font-bold"
+                                :class="zoom === 1.5 ? '!bg-primary !text-white' : '!text-black dark:!text-white hover:bg-base-300'">
+                                1.5x
                             </button>
-                            <span class="opacity-40">|</span>
-                            <button type="button" @click="deleteActiveElement()" class="btn btn-ghost btn-xs min-h-0 h-6 px-1"
-                                title="Eliminar (Supr)">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 11v6M14 11v6" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7l1 12a1 1 0 001 1h4a1 1 0 001-1l1-12" />
-                                </svg>
-                                <span class="ml-1">Supr</span>
+                            <button type="button" @click="setZoom(2)" 
+                                class="btn btn-ghost btn-xs join-item min-h-0 h-5 px-1.5 text-[9px] border-none font-bold"
+                                :class="zoom === 2 ? '!bg-primary !text-white' : '!text-black dark:!text-white hover:bg-base-300'">
+                                2x
+                            </button>
+                            <button type="button" @click="setZoom(3)" 
+                                class="btn btn-ghost btn-xs join-item min-h-0 h-5 px-1.5 text-[9px] border-none font-bold"
+                                :class="zoom === 3 ? '!bg-primary !text-white' : '!text-black dark:!text-white hover:bg-base-300'">
+                                3x
                             </button>
                         </div>
-                        <button @click="refreshPreview(true)" class="btn btn-xs btn-ghost gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Refrescar
+
+                        <div class="h-3.5 w-px bg-base-300"></div>
+
+                        <!-- Refresh Preview -->
+                        <button type="button" @click="refreshPreview(true)" class="btn btn-ghost btn-xs min-h-0 h-6 px-1.5 !text-black dark:!text-white font-bold hover:bg-base-200" title="Refrescar vista previa">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span class="text-[9px]">Refrescar</span>
                         </button>
                     </div>
                 </div>
+            <div class="flex-1 relative min-h-0 min-w-0 bg-base-200 rounded-lg shadow-inner">
                 <div
                     x-ref="previewContainer"
                     @dragover.prevent="allowVariableDrop($event)"
                     @drop.prevent="handleVariableDrop($event)"
-                    @mousedown.self="activeElement = null"
-                    class="flex-1 bg-base-200 rounded-lg shadow-inner overflow-hidden relative flex items-center justify-center">
+                    @mousedown="handleContainerMouseDown($event)"
+                    @contextmenu="handleContextMenu($event)"
+                    :class="[
+                        zoom === 1 ? 'flex items-center justify-center overflow-hidden' : 'block overflow-auto p-4',
+                        zoom > 1 && !isPanning ? 'cursor-grab' : '',
+                        zoom > 1 && isPanning ? 'cursor-grabbing' : ''
+                    ]"
+                    class="absolute inset-0">
                     <div x-show="loading"
                         class="absolute inset-0 bg-base-100/50 flex items-center justify-center z-10 backdrop-blur-sm">
                         <span class="loading loading-spinner loading-lg text-primary"></span>
@@ -195,40 +238,43 @@
                                         @mousedown.prevent="startResize($event, 'text', index, 'se')"></div>
                                 </div>
                             </template>
-                            <div x-show="showQr"
-                                class="absolute border border-secondary/70 bg-secondary/10 rounded-sm cursor-move pointer-events-auto"
-                                :style="qrStyle()"
-                                @mousedown.prevent="startDrag($event, 'qr', null)"
-                                :class="activeElement && activeElement.type === 'qr' ? 'ring-2 ring-secondary/70' : ''">
-                                <span class="text-[9px] text-secondary px-1 py-0.5 bg-base-100/80 rounded">QR</span>
-                                <div class="absolute -left-1 -top-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nwse-resize"
-                                    @mousedown.prevent="startResize($event, 'qr', null, 'nw')"></div>
-                                <div class="absolute -right-1 -top-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nesw-resize"
-                                    @mousedown.prevent="startResize($event, 'qr', null, 'ne')"></div>
-                                <div class="absolute -left-1 -bottom-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nesw-resize"
-                                    @mousedown.prevent="startResize($event, 'qr', null, 'sw')"></div>
-                                <div class="absolute -right-1 -bottom-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nwse-resize"
-                                    @mousedown.prevent="startResize($event, 'qr', null, 'se')"></div>
-                            </div>
-                            <div x-show="showFolio"
-                                class="absolute border border-accent/70 bg-accent/10 rounded-sm cursor-move pointer-events-auto"
-                                :style="folioStyle()"
-                                @mousedown.prevent="startDrag($event, 'folio', null)"
-                                :class="activeElement && activeElement.type === 'folio' ? 'ring-2 ring-accent/70' : ''">
-                                <span class="text-[9px] text-accent px-1 py-0.5 bg-base-100/80 rounded">Folio</span>
-                                <div class="absolute -left-1 -top-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nwse-resize"
-                                    @mousedown.prevent="startResize($event, 'folio', null, 'nw')"></div>
-                                <div class="absolute -right-1 -top-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nesw-resize"
-                                    @mousedown.prevent="startResize($event, 'folio', null, 'ne')"></div>
-                                <div class="absolute -left-1 -bottom-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nesw-resize"
-                                    @mousedown.prevent="startResize($event, 'folio', null, 'sw')"></div>
-                                <div class="absolute -right-1 -bottom-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nwse-resize"
-                                    @mousedown.prevent="startResize($event, 'folio', null, 'se')"></div>
-                            </div>
+                            <template x-if="showQr">
+                                <div class="absolute border border-secondary/70 bg-secondary/10 rounded-sm cursor-move pointer-events-auto"
+                                    :style="qrStyle()"
+                                    @mousedown.prevent="startDrag($event, 'qr', null)"
+                                    :class="activeElement && activeElement.type === 'qr' ? 'ring-2 ring-secondary/70' : ''">
+                                    <span class="text-[9px] text-secondary px-1 py-0.5 bg-base-100/80 rounded">QR</span>
+                                    <div class="absolute -left-1 -top-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nwse-resize"
+                                        @mousedown.prevent="startResize($event, 'qr', null, 'nw')"></div>
+                                    <div class="absolute -right-1 -top-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nesw-resize"
+                                        @mousedown.prevent="startResize($event, 'qr', null, 'ne')"></div>
+                                    <div class="absolute -left-1 -bottom-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nesw-resize"
+                                        @mousedown.prevent="startResize($event, 'qr', null, 'sw')"></div>
+                                    <div class="absolute -right-1 -bottom-1 h-2.5 w-2.5 bg-secondary rounded-sm border border-white cursor-nwse-resize"
+                                        @mousedown.prevent="startResize($event, 'qr', null, 'se')"></div>
+                                </div>
+                            </template>
+                            <template x-if="showFolio">
+                                <div class="absolute border border-accent/70 bg-accent/10 rounded-sm cursor-move pointer-events-auto"
+                                    :style="folioStyle()"
+                                    @mousedown.prevent="startDrag($event, 'folio', null)"
+                                    :class="activeElement && activeElement.type === 'folio' ? 'ring-2 ring-accent/70' : ''">
+                                    <span class="text-[9px] text-accent px-1 py-0.5 bg-base-100/80 rounded">Folio</span>
+                                    <div class="absolute -left-1 -top-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nwse-resize"
+                                        @mousedown.prevent="startResize($event, 'folio', null, 'nw')"></div>
+                                    <div class="absolute -right-1 -top-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nesw-resize"
+                                        @mousedown.prevent="startResize($event, 'folio', null, 'ne')"></div>
+                                    <div class="absolute -left-1 -bottom-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nesw-resize"
+                                        @mousedown.prevent="startResize($event, 'folio', null, 'sw')"></div>
+                                    <div class="absolute -right-1 -bottom-1 h-2.5 w-2.5 bg-accent rounded-sm border border-white cursor-nwse-resize"
+                                        @mousedown.prevent="startResize($event, 'folio', null, 'se')"></div>
+                                </div>
+                            </template>
                         </div>
                     </div>
                     <img x-ref="previewImage" class="max-w-full max-h-full" alt="Vista previa" @load="syncOverlayMetrics()" />
                 </div>
+            </div>
             </div>
 
             <!-- Right Pane: Configuration -->
@@ -305,8 +351,8 @@
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="text_elements" x-model="JSON.stringify(textElements)">
-                    <input type="hidden" name="show_qr" value="1">
-                    <input type="hidden" name="show_folio" value="1">
+                    <input type="hidden" name="show_qr" x-bind:value="showQr ? '1' : '0'">
+                    <input type="hidden" name="show_folio" x-bind:value="showFolio ? '1' : '0'">
 
                     <!-- 1. Información Básica -->
                     <div x-show="activeSection === 'basic'" class="space-y-2">
@@ -374,9 +420,17 @@
                             <label class="label cursor-pointer gap-2 py-0 justify-start">
                                 <input type="checkbox" name="folio_year_prefix" value="1"
                                     class="checkbox checkbox-xs checkbox-primary" {{ old('folio_year_prefix', $documentConfiguration->folio_year_prefix) ? 'checked' : '' }}
-                                    @change="refreshPreview()" />
+                                    @change="refreshPreview()"
+                                    onchange="document.getElementById('editor_custom_year_container').classList.toggle('hidden', !this.checked)" />
                                 <span class="label-text text-[10px]">Prefijo Año (Ej. {{ date('Y') }}-0001)</span>
                             </label>
+                        </div>
+                        <div id="editor_custom_year_container" class="{{ old('folio_year_prefix', $documentConfiguration->folio_year_prefix) ? '' : 'hidden' }} px-1">
+                            <input type="text" name="custom_folio_year"
+                                value="{{ old('custom_folio_year', $documentConfiguration->custom_folio_year) }}"
+                                class="input input-bordered input-xs w-full text-[10px]"
+                                placeholder="Año manual (Ej. 2024)"
+                                @change="refreshPreview()" />
                         </div>
                     </div>
 
@@ -491,7 +545,10 @@
 
                     <!-- 6. Elementos de Texto (Dynamic) -->
                     <div x-show="activeSection === 'elements'" class="space-y-2">
-                        <div class="text-xs font-bold uppercase tracking-wider mb-2 opacity-50">Elementos de Texto</div>
+                        <div class="text-xs font-bold uppercase tracking-wider mb-2 opacity-50 flex justify-between items-center">
+                            Elementos de Texto
+                            <span class="text-[9px] lowercase italic text-info">Usa {nombre} para campos dinámicos</span>
+                        </div>
                         <div class="space-y-2">
                             <template x-for="(element, index) in textElements" :key="index">
                                 <div class="border border-base-200 rounded-md p-2 bg-base-50 relative group">
@@ -612,6 +669,32 @@
                                                 <span class="label-text text-[9px] opacity-70">UPPERCASE</span>
                                             </label>
                                         </div>
+
+                                        <!-- Formatting Buttons (Bold, Italic, Underline) -->
+                                        <div class="form-control col-span-2 mt-1">
+                                            <label class="label py-0 mb-1"><span
+                                                    class="label-text text-[9px] opacity-70">Estilo de Texto</span></label>
+                                            <div class="join w-full">
+                                                <button type="button" 
+                                                    @click="toggleFontStyle(element, 'B')" 
+                                                    class="btn btn-xs join-item flex-1 font-bold text-xs"
+                                                    :class="hasFontStyle(element, 'B') ? 'btn-primary' : 'btn-outline'">
+                                                    B
+                                                </button>
+                                                <button type="button" 
+                                                    @click="toggleFontStyle(element, 'I')" 
+                                                    class="btn btn-xs join-item flex-1 italic text-xs"
+                                                    :class="hasFontStyle(element, 'I') ? 'btn-primary' : 'btn-outline'">
+                                                    I
+                                                </button>
+                                                <button type="button" 
+                                                    @click="toggleFontStyle(element, 'U')" 
+                                                    class="btn btn-xs join-item flex-1 underline text-xs"
+                                                    :class="hasFontStyle(element, 'U') ? 'btn-primary' : 'btn-outline'">
+                                                    U
+                                                </button>
+                                            </div>
+                                        </div>
                                         <div class="form-control col-span-2">
                                             <label class="label py-0"><span
                                                     class="label-text text-[9px] opacity-70">Auto Width
@@ -641,9 +724,11 @@
                         <div class="text-xs font-bold uppercase tracking-wider mb-2 opacity-50">Opciones</div>
                         <div class="flex justify-between px-1 mb-2">
                             <div class="form-control">
-                                <label class="label cursor-default gap-2 py-0">
-                                    <span class="label-text text-[10px] font-semibold">QR obligatorio</span>
-                                    <span class="badge badge-xs badge-success">Activo</span>
+                                <label class="label cursor-pointer gap-2 py-0">
+                                    <span class="label-text text-[10px] font-semibold">Mostrar QR</span>
+                                    <input type="checkbox" class="toggle toggle-xs toggle-secondary"
+                                        x-model="showQr"
+                                        @change="$nextTick(() => refreshPreview(true))" />
                                 </label>
                             </div>
                             <div class="form-control">
@@ -667,7 +752,7 @@
                         </div>
 
                         <!-- QR Configuration Fields -->
-                        <div class="grid grid-cols-2 gap-2 border-t border-base-200 pt-2">
+                        <div x-show="showQr" x-transition class="grid grid-cols-2 gap-2 border-t border-base-200 pt-2">
                             <div class="form-control">
                                 <label class="label py-0"><span class="label-text text-[9px] opacity-70">QR X
                                         (mm)</span></label>
@@ -709,9 +794,11 @@
                         <!-- Folio Configuration -->
                         <div class="flex justify-between px-1 mb-2 mt-4 border-t border-base-200 pt-2">
                             <div class="form-control">
-                                <label class="label cursor-default gap-2 py-0">
-                                    <span class="label-text text-[10px] font-semibold">Folio obligatorio</span>
-                                    <span class="badge badge-xs badge-success">Activo</span>
+                                <label class="label cursor-pointer gap-2 py-0">
+                                    <span class="label-text text-[10px] font-semibold">Mostrar Folio</span>
+                                    <input type="checkbox" class="toggle toggle-xs toggle-accent"
+                                        x-model="showFolio"
+                                        @change="$nextTick(() => refreshPreview(true))" />
                                 </label>
                             </div>
                         </div>
@@ -810,8 +897,8 @@
                     activeSection: 'basic',
                     textElements: @json($documentConfiguration->text_elements ?? []),
                     sampleData: @json($documentConfiguration->sample_data ?? ['nombre' => 'Juan Pérez']),
-                    showQr: true,
-                    showFolio: true,
+                    showQr: {{ ($documentConfiguration->show_qr ?? true) ? 'true' : 'false' }},
+                    showFolio: {{ ($documentConfiguration->show_folio ?? true) ? 'true' : 'false' }},
                     enableLivePreview: {{ $documentConfiguration->enable_live_preview ?? true ? 'true' : 'false' }},
                     enableDrag: true,
                     overlayScale: 1,
@@ -820,6 +907,11 @@
                     overlayOffsetX: 0,
                     overlayOffsetY: 0,
                     dragState: null,
+                    zoom: 1,
+                    baseFitWidth: 0,
+                    baseFitHeight: 0,
+                    isPanning: false,
+                    panState: null,
                     
                     // Page Settings
                     pageOrientation: '{{ $documentConfiguration->page_orientation ?? "P" }}',
@@ -848,7 +940,53 @@
                     notifications: [],
                     undoStack: [],
                     redoStack: [],
-                    historyLimit: 30,
+                    setZoom(level) {
+                        this.zoom = level;
+                        this.$nextTick(() => {
+                            this.syncOverlayMetrics();
+                        });
+                    },
+
+                    handleContextMenu(event) {
+                        if (this.zoom > 1) {
+                            event.preventDefault();
+                        }
+                    },
+
+                    handleContainerMouseDown(event) {
+                        if (this.zoom > 1 && (event.button === 2 || event.button === 1)) {
+                            if (event.target !== this.$refs.previewContainer && event.target !== this.$refs.previewImage) return;
+                            event.preventDefault();
+                            this.isPanning = true;
+                            const container = this.$refs.previewContainer;
+                            this.panState = {
+                                startX: event.clientX,
+                                startY: event.clientY,
+                                startScrollLeft: container.scrollLeft,
+                                startScrollTop: container.scrollTop
+                            };
+
+                            const onPanMove = (e) => {
+                                if (!this.isPanning || !this.panState) return;
+                                const dx = e.clientX - this.panState.startX;
+                                const dy = e.clientY - this.panState.startY;
+                                container.scrollLeft = this.panState.startScrollLeft - dx;
+                                container.scrollTop = this.panState.startScrollTop - dy;
+                            };
+
+                            const onPanUp = () => {
+                                window.removeEventListener('mousemove', onPanMove);
+                                window.removeEventListener('mouseup', onPanUp);
+                                this.isPanning = false;
+                                this.panState = null;
+                            };
+
+                            window.addEventListener('mousemove', onPanMove);
+                            window.addEventListener('mouseup', onPanUp);
+                        } else if (event.target === this.$refs.previewContainer || event.target === this.$refs.previewImage) {
+                            this.activeElement = null;
+                        }
+                    },
 
                     init() {
                         this.$nextTick(() => {
@@ -962,8 +1100,21 @@
                             this.showNotification('Elemento eliminado', 'info');
                             return;
                         }
-                        if (this.activeElement.type === 'qr' || this.activeElement.type === 'folio') {
-                            this.showNotification('El QR y el folio no se pueden eliminar', 'warning');
+                        if (this.activeElement.type === 'qr') {
+                            this.showQr = false;
+                            this.activeElement = null;
+                            this.refreshPreview(true);
+                            this.scheduleAutoSave();
+                            this.showNotification('QR desactivado', 'info');
+                            return;
+                        }
+                        if (this.activeElement.type === 'folio') {
+                            this.showFolio = false;
+                            this.activeElement = null;
+                            this.refreshPreview(true);
+                            this.scheduleAutoSave();
+                            this.showNotification('Folio desactivado', 'info');
+                            return;
                         }
                     },
 
@@ -1160,6 +1311,10 @@
                             formData.set('background_fit', '1');
                         }
 
+                        // QR & Folio toggles — always send explicitly
+                        formData.set('show_qr', this.showQr ? '1' : '0');
+                        formData.set('show_folio', this.showFolio ? '1' : '0');
+
                         return formData;
                     },
 
@@ -1263,6 +1418,27 @@
                             const img = this.$refs.previewImage;
                             if (!container || !img) return;
 
+                            if (this.zoom === 1) {
+                                img.style.width = '';
+                                img.style.maxWidth = '';
+                                img.style.height = '';
+                                img.style.maxHeight = '';
+                                
+                                const imgRect = img.getBoundingClientRect();
+                                this.baseFitWidth = imgRect.width;
+                                this.baseFitHeight = imgRect.height;
+                            } else {
+                                if (!this.baseFitWidth || !this.baseFitHeight) {
+                                    const imgRect = img.getBoundingClientRect();
+                                    this.baseFitWidth = imgRect.width || 400;
+                                    this.baseFitHeight = imgRect.height || 300;
+                                }
+                                img.style.width = (this.baseFitWidth * this.zoom) + 'px';
+                                img.style.maxWidth = 'none';
+                                img.style.height = (this.baseFitHeight * this.zoom) + 'px';
+                                img.style.maxHeight = 'none';
+                            }
+
                             const rect = container.getBoundingClientRect();
                             const imgRect = img.getBoundingClientRect();
                             const page = this.getPageDimensionsMm();
@@ -1273,8 +1449,8 @@
                             this.overlayScale = scale;
                             this.overlayWidthPx = imgRect.width;
                             this.overlayHeightPx = imgRect.height;
-                            this.overlayOffsetX = imgRect.left - rect.left;
-                            this.overlayOffsetY = imgRect.top - rect.top;
+                            this.overlayOffsetX = imgRect.left - rect.left + container.scrollLeft;
+                            this.overlayOffsetY = imgRect.top - rect.top + container.scrollTop;
                         });
                     },
 
@@ -1320,6 +1496,27 @@
                         const width = (parseFloat(this.folioWidth || 10) * this.overlayScale) || 10;
                         const height = (parseFloat(this.folioHeight || 6) * this.overlayScale) || 6;
                         return `left:${x}px; top:${y}px; width:${width}px; height:${height}px;`;
+                    },
+
+                    toggleFontStyle(element, styleChar) {
+                        this.pushHistory();
+                        let currentStyle = element.font_style || '';
+                        if (currentStyle.includes(styleChar)) {
+                            element.font_style = currentStyle.replace(styleChar, '');
+                        } else {
+                            let newStyle = currentStyle + styleChar;
+                            let sortedStyle = '';
+                            if (newStyle.includes('B')) sortedStyle += 'B';
+                            if (newStyle.includes('I')) sortedStyle += 'I';
+                            if (newStyle.includes('U')) sortedStyle += 'U';
+                            element.font_style = sortedStyle;
+                        }
+                        this.refreshPreview(true);
+                        this.scheduleAutoSave();
+                    },
+
+                    hasFontStyle(element, styleChar) {
+                        return (element.font_style || '').includes(styleChar);
                     },
 
                     clampAllPositions() {
@@ -1531,6 +1728,36 @@
                         }
                     },
 
+                    removeVariable(key) {
+                        if (!confirm(`¿Estás seguro de que quieres eliminar la variable "${key}"? Esto la quitará de la lista y del documento si está siendo usada como único contenido en un elemento.`)) {
+                            return;
+                        }
+                        this.pushHistory();
+                        
+                        // Eliminar de sampleData
+                        const newData = { ...this.sampleData };
+                        delete newData[key];
+                        this.sampleData = newData;
+
+                        // Eliminar elementos de texto que contengan EXACTAMENTE esa variable
+                        const beforeCount = this.textElements.length;
+                        this.textElements = this.textElements.filter(el => {
+                            return el.text !== '{' + key + '}';
+                        });
+
+                        this.scheduleAutoSave();
+                        
+                        this.$nextTick(() => {
+                            this.refreshPreview(true);
+                        });
+                        
+                        let msg = `Variable "${key}" eliminada.`;
+                        if (this.textElements.length < beforeCount) {
+                            msg += ` Se quitaron ${beforeCount - this.textElements.length} elementos del documento.`;
+                        }
+                        this.showNotification(msg, 'info');
+                    },
+
                     startVariableDrag(event, key) {
                         if (!event?.dataTransfer) return;
                         event.dataTransfer.setData('application/x-constancias-var', key);
@@ -1626,6 +1853,8 @@
                             width: 50,
                             height: 10,
                             font_size: 12,
+                            font_family: 'Arial',
+                            font_style: '',
                             alignment: 'L',
                             text_color: '#000000',
                             fill_color: '#FFFFFF',

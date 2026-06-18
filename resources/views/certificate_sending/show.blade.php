@@ -175,9 +175,35 @@
                                         </svg>
                                         Previsualizar Datos
                                     </button>
+
+                                    <div class="dropdown dropdown-end">
+                                        <label tabindex="0" class="btn btn-secondary btn-sm gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                            </svg>
+                                            Descargar Todas
+                                        </label>
+                                        <ul tabindex="0" class="dropdown-content z-[20] menu p-2 shadow bg-base-100 rounded-box w-52 text-sm border border-base-200">
+                                            <li>
+                                                <a href="{{ route('certificate-sending.download-all-pdf', $history) }}" class="flex items-center gap-2">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                    </svg>
+                                                    Todas en un PDF
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="{{ route('certificate-sending.download-all-zip', $history) }}" class="flex items-center gap-2">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                                                    </svg>
+                                                    Todas en un ZIP
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 @endif
-                            </div>
-                        </div>
+                            </div>                        </div>
                         <p class="text-xs opacity-60 mb-3">
                             Para no sobrecargar, las previsualizaciones se cargan bajo demanda.
                         </p>
@@ -381,7 +407,7 @@
                         </div>
                         <div class="bg-base-200 flex-1 flex items-center justify-center relative min-h-[400px] p-4">
                             @if($isOwner && $history->documentConfiguration)
-                                <img src="{{ route('document-configurations.preview', $history->documentConfiguration) }}?format=png"
+                                <img src="{{ route('document-configurations.preview', $history->documentConfiguration) }}?format=jpg"
                                     class="max-w-full h-auto shadow-md rounded" 
                                     alt="Vista previa del diseño"
                                     loading="lazy">
@@ -427,7 +453,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <template x-if="currentCertificate && viewMode === 'preview'">
-                            <a :href="'/verificar/' + currentCertificate.uuid" target="_blank"
+                            <a :href="'/verificar/' + currentCertificate.uuid + '/preview?download=1'"
                                 class="btn btn-sm btn-outline gap-1">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -475,8 +501,8 @@
                                 <p class="text-xs mt-2 font-medium opacity-70">Generando vista previa...</p>
                             </div>
 
-                            <!-- Imagen PNG del preview -->
-                            <img :src="'/verificar/' + currentCertificate.uuid + '/preview?format=png'"
+                            <!-- Imagen JPG del preview -->
+                            <img :src="'/verificar/' + currentCertificate.uuid + '/preview?format=jpg'"
                                 x-on:load="isLoadingImage = false"
                                 x-on:error="isLoadingImage = false"
                                 class="max-w-full h-auto shadow-lg transition-all duration-500"

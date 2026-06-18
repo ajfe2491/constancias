@@ -46,9 +46,22 @@ class SendCertificateJob implements ShouldQueue
                 'history_id' => $this->historyId,
             ]);
 
-            $folioNumber = $this->configuration->folio_start
-                ? ($this->configuration->folio_start + $certificate->id - 1)
-                : $certificate->id;
+            // Folio Calculation: Scope by DocumentConfiguration and Event
+            $lastCertificate = Certificate::where('document_configuration_id', $this->configuration->id)
+                ->where('event_id', $this->configuration->event_id)
+                ->where('id', '!=', $certificate->id)
+                ->latest('id')
+                ->first();
+
+            $configFolioStart = $this->configuration->folio_start ?? 1;
+
+            if ($lastCertificate && $lastCertificate->folio_number) {
+                // Respect folio_start as a minimum value, allowing "jumps" if configured
+                $folioNumber = max($lastCertificate->folio_number + 1, $configFolioStart);
+            } else {
+                $folioNumber = $configFolioStart;
+            }
+
             $formattedFolio = $this->configuration->formatFolio($folioNumber);
             $certificate->update([
                 'folio_number' => $folioNumber,

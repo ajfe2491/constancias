@@ -39,9 +39,8 @@ class DocumentConfiguration extends Model
         'qr_height',
         'folio_start',
         'folio_digits',
-        'folio_start',
-        'folio_digits',
         'folio_year_prefix',
+        'custom_folio_year',
         'show_folio',
         'folio_x',
         'folio_y',
@@ -160,7 +159,8 @@ class DocumentConfiguration extends Model
         $formattedFolio = str_pad((string) $folioNumber, $this->folio_digits ?? 4, '0', STR_PAD_LEFT);
 
         if ($this->folio_year_prefix) {
-            $formattedFolio = date('Y') . '-' . $formattedFolio;
+            $year = $this->custom_folio_year ?: date('Y');
+            $formattedFolio = $year . '-' . $formattedFolio;
         }
 
         if ($this->event && $this->event->key) {
@@ -175,8 +175,35 @@ class DocumentConfiguration extends Model
      */
     public function generatePDF($data = [])
     {
+        $unit = $this->page_unit ?: 'mm';
+        if (!in_array($unit, ['mm', 'pt', 'in'])) {
+            $unit = 'mm';
+        }
+        $orientation = $this->page_orientation ?: 'P';
+        $size = $this->page_size ?: 'Letter';
+
+        $pdf = new \FPDF($orientation, $unit, $size);
+
+        $this->renderCertificateToPdf($pdf, $data);
+
+        return $pdf;
+    }
+
+    /**
+     * Renderizar una constancia en una página de un PDF existente
+     */
+    public function renderCertificateToPdf(\FPDF $pdf, $data = [])
+    {
         // Folio Logic
-        $folioNumber = $data['folio'] ?? $this->folio_start ?? 1;
+        // Priority: data['folio_number'] (calculated) > data['folio'] (raw) > this->folio_start (default)
+        if (isset($data['folio_number'])) {
+            $folioNumber = $data['folio_number'];
+        } elseif (isset($data['folio']) && is_numeric($data['folio'])) {
+            $folioNumber = $data['folio'];
+        } else {
+            $folioNumber = $this->folio_start ?? 1;
+        }
+        
         $data['folio'] = $this->formatFolio($folioNumber);
 
         // Datos del sistema (Hardcoded por ahora, idealmente vendrían de una configuración)
@@ -191,10 +218,6 @@ class DocumentConfiguration extends Model
         if (!in_array($unit, ['mm', 'pt', 'in'])) {
             $unit = 'mm';
         }
-        $orientation = $this->page_orientation ?: 'P';
-        $size = $this->page_size ?: 'Letter';
-
-        $pdf = new \FPDF($orientation, $unit, $size);
 
         // Márgenes
         $left = is_numeric($this->margin_left) ? floatval($this->margin_left) : 0;
@@ -205,7 +228,7 @@ class DocumentConfiguration extends Model
         $pdf->SetMargins($left, $top, $right);
         $pdf->SetAutoPageBreak(true, $bottom);
 
-        $pdf->AddPage();
+        $pdf->AddPage($this->page_orientation ?: 'P', $this->page_size ?: 'Letter');
         $pdf->SetTextColor(0, 0, 0);
 
         // Imagen de Fondo
@@ -322,8 +345,6 @@ class DocumentConfiguration extends Model
                 }
             }
         }
-
-        return $pdf;
     }
 
     protected function resolvePublicOrStoragePath($path)

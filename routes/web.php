@@ -55,6 +55,10 @@ Route::middleware('auth')->group(function () {
         ->parameters(['certificate-sending' => 'history']);
     Route::get('/certificate-sending/{history}/csv', [CertificateSendingController::class, 'downloadCsv'])
         ->name('certificate-sending.csv');
+    Route::get('/certificate-sending/{history}/download-all-pdf', [CertificateSendingController::class, 'downloadAllPdf'])
+        ->name('certificate-sending.download-all-pdf');
+    Route::get('/certificate-sending/{history}/download-all-zip', [CertificateSendingController::class, 'downloadAllZip'])
+        ->name('certificate-sending.download-all-zip');
     Route::get('/certificate-sending/{document_configuration}/template', [CertificateSendingController::class, 'downloadTemplate'])->name('certificate-sending.template');
     Route::post('/events/{event}/toggle-active', [EventController::class, 'toggleActive'])
         ->name('events.toggle-active');

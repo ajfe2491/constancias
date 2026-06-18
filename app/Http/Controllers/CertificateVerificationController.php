@@ -24,23 +24,26 @@ class CertificateVerificationController extends Controller
     {
         $startTime = microtime(true);
         
-        // 1. Intentar servir desde caché inmediatamente (lo más rápido)
-        if ($request->query('format') === 'png') {
-            $previewPath = "previews/{$uuid}.png";
+        $certificate = Certificate::with(['documentConfiguration.event'])
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+            
+        $configUpdatedAt = $certificate->documentConfiguration?->updated_at?->timestamp ?? 0;
+        $format = $request->query('format', 'png');
+
+        // 1. Intentar servir desde caché incluyendo el timestamp del diseño
+        if ($format === 'png' || $format === 'jpg') {
+            $previewPath = "previews/{$uuid}_{$configUpdatedAt}.{$format}";
             if (Storage::disk('local')->exists($previewPath)) {
-                $png = Storage::disk('local')->get($previewPath);
-                return response($png, 200, [
-                    'Content-Type' => 'image/png',
-                    'Cache-Control' => 'public, max-age=3600',
+                return response(Storage::disk('local')->get($previewPath), 200, [
+                    'Content-Type' => "image/{$format}",
+                    'Cache-Control' => 'public, max-age=86400',
                 ]);
             }
         }
 
-        // 2. Si no hay caché, procesar (lento)
-        $certificate = Certificate::with(['documentConfiguration.event'])
-            ->where('uuid', $uuid)
-            ->firstOrFail();
-
+        // 2. Si no hay caché, procesar
+        $t1 = microtime(true);
         $data = $certificate->recipient_data ?? [];
         $data['folio'] = $certificate->folio_number ?? $data['folio'] ?? null;
 
@@ -50,10 +53,20 @@ class CertificateVerificationController extends Controller
 
         $pdf = $certificate->documentConfiguration->generatePDF($data);
         $pdfContent = $pdf->Output('S');
+        $t2 = microtime(true);
 
-        if ($request->query('format') === 'png') {
+        if ($request->query('format') === 'png' || $request->query('format') === 'jpg') {
+            $format = $request->query('format', 'png');
+            
             if (!class_exists(\Imagick::class)) {
-                return response()->json(['message' => 'Imagick no disponible'], 501);
+                // Fallback GD...
+                $img = imagecreatetruecolor(800, 400);
+                $bg = imagecolorallocate($img, 245, 245, 245);
+                imagefill($img, 0, 0, $bg);
+                imagestring($img, 5, 160, 180, 'Imagick no disponible', imagecolorallocate($img, 100, 100, 100));
+                ob_start();
+                imagepng($img);
+                return response(ob_get_clean(), 200, ['Content-Type' => 'image/png']);
             }
 
             $tmpPdf = storage_path('app/tmp/v_' . $uuid . '.pdf');
@@ -62,22 +75,32 @@ class CertificateVerificationController extends Controller
 
             try {
                 $imagick = new \Imagick();
-                // Resolución baja para rasterización rápida
+                // Reducir resolución para mayor velocidad en previsualización
                 $imagick->setResolution(72, 72);
                 $imagick->readImage($tmpPdf . '[0]');
                 $imagick->setImageBackgroundColor('white');
                 $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
-                $imagick->setImageFormat('png');
-                $imagick->resizeImage(800, 0, \Imagick::FILTER_LANCZOS, 1);
+                $imagick->setImageFormat($format);
                 
-                $png = $imagick->getImageBlob();
-                Storage::disk('local')->put("previews/{$uuid}.png", $png);
+                // Usar un filtro más rápido para el redimensionamiento
+                $imagick->resizeImage(800, 0, \Imagick::FILTER_TRIANGLE, 1);
+                
+                if ($format === 'jpg') {
+                    $imagick->setImageCompressionQuality(75);
+                }
+                
+                $blob = $imagick->getImageBlob();
+                Storage::disk('local')->put("previews/{$uuid}_{$configUpdatedAt}.{$format}", $blob);
 
                 $imagick->clear();
                 $imagick->destroy();
                 
-                $totalTime = round((microtime(true) - $startTime) * 1000);
-                \Log::error("PREVIEW GENERADO: UUID {$uuid} en {$totalTime}ms");
+                $t3 = microtime(true);
+                $total = round(($t3 - $startTime) * 1000);
+                $pdfTime = round(($t2 - $t1) * 1000);
+                $imgTime = round(($t3 - $t2) * 1000);
+                
+                \Log::info("PREVIEW: UUID {$uuid} | Total: {$total}ms | PDF: {$pdfTime}ms | IMG: {$imgTime}ms");
             } catch (\Exception $e) {
                 \Log::error("ERROR PREVIEW: " . $e->getMessage());
                 throw $e;
@@ -85,12 +108,14 @@ class CertificateVerificationController extends Controller
                 @unlink($tmpPdf);
             }
 
-            return response($png, 200, ['Content-Type' => 'image/png']);
+            return response($blob, 200, ['Content-Type' => "image/{$format}"]);
         }
+
+        $disposition = $request->boolean('download') ? 'attachment' : 'inline';
 
         return response($pdfContent, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="constancia.pdf"'
+            'Content-Disposition' => $disposition . '; filename="constancia.pdf"'
         ]);
     }
 }

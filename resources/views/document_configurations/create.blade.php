@@ -86,9 +86,17 @@
                                 min="1" max="20" required />
                         </div>
                         <div class="form-control w-full">
-                            <label class="label cursor-pointer">
-                                <span class="label-text font-bold">Prefijo Año (Ej. 2025-)</span>
-                                <input type="checkbox" name="folio_year_prefix" class="checkbox checkbox-primary" />
+                            <label class="label cursor-pointer flex-wrap gap-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" name="folio_year_prefix" class="checkbox checkbox-primary" onchange="document.getElementById('custom_year_container').classList.toggle('hidden', !this.checked)" />
+                                    <span class="label-text font-bold">Prefijo Año (Ej. {{ date('Y') }}-)</span>
+                                </div>
+                                <div id="custom_year_container" class="hidden w-full mt-2">
+                                    <input type="text" name="custom_folio_year" class="input input-bordered input-sm w-full" placeholder="Año manual (Ej. 2024)" />
+                                    <label class="label p-0">
+                                        <span class="label-text-alt text-gray-500">Si se deja vacío, se usará el año actual.</span>
+                                    </label>
+                                </div>
                             </label>
                         </div>
                     </div>

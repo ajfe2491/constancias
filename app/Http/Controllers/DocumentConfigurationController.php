@@ -91,6 +91,7 @@ class DocumentConfigurationController extends Controller
             'folio_start' => 'required|integer|min:1',
             'folio_digits' => 'required|integer|min:1|max:20',
             'folio_year_prefix' => 'boolean',
+            'custom_folio_year' => 'nullable|string|max:10',
         ]);
 
         $copy = $documentConfiguration->replicate();
@@ -98,6 +99,10 @@ class DocumentConfigurationController extends Controller
         $copy->document_type = $validated['document_type'];
         $copy->description = $validated['description'] ?? null;
         $copy->event_id = $validated['event_id'] ?? null;
+        $copy->folio_start = $validated['folio_start'];
+        $copy->folio_digits = $validated['folio_digits'];
+        $copy->folio_year_prefix = $request->has('folio_year_prefix');
+        $copy->custom_folio_year = $validated['custom_folio_year'] ?? null;
         $copy->user_id = Auth::id();
 
         if ($documentConfiguration->background_image &&
@@ -132,22 +137,19 @@ class DocumentConfigurationController extends Controller
                     ? Rule::exists('events', 'id')
                     : Rule::exists('events', 'id')->where('user_id', Auth::id()),
             ],
+            'folio_start' => 'required|integer|min:1',
+            'folio_digits' => 'required|integer|min:1|max:20',
+            'folio_year_prefix' => 'boolean',
+            'custom_folio_year' => 'nullable|string|max:10',
         ]);
 
         // Set defaults
-        $data = $request->only([
-            'document_name',
-            'document_type',
-            'description',
-            'event_id',
-            'folio_start',
-            'folio_digits',
-        ]);
+        $data = $validated;
         $data['page_orientation'] = 'L';
         $data['page_size'] = 'Letter';
         $data['is_active'] = true;
-        $data['show_qr'] = true;
-        $data['show_folio'] = true;
+        $data['show_qr'] = $request->has('show_qr');
+        $data['show_folio'] = $request->has('show_folio');
         $data['folio_year_prefix'] = $request->has('folio_year_prefix');
         $data['user_id'] = Auth::id();
 
@@ -187,12 +189,14 @@ class DocumentConfigurationController extends Controller
             'folio_start' => 'required|integer|min:1',
             'folio_digits' => 'required|integer|min:1|max:20',
             'folio_year_prefix' => 'boolean',
+            'custom_folio_year' => 'nullable|string|max:10',
             'event_id' => [
                 'nullable',
                 Auth::user()->isSuperAdmin()
                     ? Rule::exists('events', 'id')
                     : Rule::exists('events', 'id')->where('user_id', Auth::id()),
             ],
+            'show_qr' => 'boolean',
             'show_folio' => 'boolean',
             'folio_x' => 'nullable|numeric',
             'folio_y' => 'nullable|numeric',
@@ -241,9 +245,9 @@ class DocumentConfigurationController extends Controller
         // Asegurar que los campos booleanos se procesen correctamente
         // Para checkboxes estándar, la presencia del campo indica "true".
         $data['is_active'] = $request->has('is_active');
-        $data['show_qr'] = true;
+        $data['show_qr'] = filter_var($request->input('show_qr', false), FILTER_VALIDATE_BOOLEAN);
         $data['folio_year_prefix'] = $request->has('folio_year_prefix');
-        $data['show_folio'] = true;
+        $data['show_folio'] = filter_var($request->input('show_folio', false), FILTER_VALIDATE_BOOLEAN);
         $data['enable_live_preview'] = $request->has('enable_live_preview');
         $data['background_fit'] = $request->has('background_fit');
 
@@ -324,8 +328,8 @@ class DocumentConfigurationController extends Controller
         // If it's an AJAX request with JSON, boolean false is sent.
         // If it's a form submit, unchecked checkboxes are missing.
         // We need to handle both cases.
-        $tempConfig->show_qr = true;
-        $tempConfig->show_folio = true;
+        $tempConfig->show_qr = filter_var($data['show_qr'] ?? $documentConfiguration->show_qr, FILTER_VALIDATE_BOOLEAN);
+        $tempConfig->show_folio = filter_var($data['show_folio'] ?? $documentConfiguration->show_folio, FILTER_VALIDATE_BOOLEAN);
 
         // Ensure background dimensions are set if image exists
         if ($tempConfig->background_image) {
@@ -366,17 +370,25 @@ class DocumentConfigurationController extends Controller
                 if (isset($data['folio_digits']))
                     $tempConfig->folio_digits = $data['folio_digits'];
                 $tempConfig->folio_year_prefix = isset($data['folio_year_prefix']);
+                if (isset($data['custom_folio_year']))
+                    $tempConfig->custom_folio_year = $data['custom_folio_year'];
             }
         }
 
         $pdf = $tempConfig->generatePDF($sampleData);
         $pdfContent = $pdf->Output('S');
 
-        if ($request->query('format') === 'png') {
+        if ($request->query('format') === 'png' || $request->query('format') === 'jpg') {
+            $format = $request->query('format', 'png');
             if (!class_exists(\Imagick::class)) {
-                return response()->json([
-                    'message' => 'Imagick no está disponible en el servidor.'
-                ], 501);
+                // Fallback GD...
+                $img = imagecreatetruecolor(800, 400);
+                $bg = imagecolorallocate($img, 245, 245, 245);
+                imagefill($img, 0, 0, $bg);
+                imagestring($img, 5, 160, 180, 'Previsualizacion no disponible', imagecolorallocate($img, 100, 100, 100));
+                ob_start();
+                imagepng($img);
+                return response(ob_get_clean(), 200, ['Content-Type' => 'image/png']);
             }
 
             $tmpDir = storage_path('app/tmp');
@@ -388,22 +400,26 @@ class DocumentConfigurationController extends Controller
             file_put_contents($tmpPdf, $pdfContent);
 
             $imagick = new \Imagick();
-            $imagick->setResolution(96, 96);
+            $imagick->setResolution(72, 72);
             $imagick->readImage($tmpPdf . '[0]');
             $imagick->setImageBackgroundColor('white');
             $imagick = $imagick->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
-            $imagick->setImageFormat('png');
+            $imagick->setImageFormat($format);
             
-            // Optimización: Redimensionar para pantalla
-            $imagick->resizeImage(800, 0, \Imagick::FILTER_LANCZOS, 1);
+            // Optimización: Filtro más rápido
+            $imagick->resizeImage(800, 0, \Imagick::FILTER_TRIANGLE, 1);
             
-            $png = $imagick->getImageBlob();
+            if ($format === 'jpg') {
+                $imagick->setImageCompressionQuality(75);
+            }
+
+            $blob = $imagick->getImageBlob();
             $imagick->clear();
             $imagick->destroy();
             @unlink($tmpPdf);
 
-            return response($png, 200, [
-                'Content-Type' => 'image/png',
+            return response($blob, 200, [
+                'Content-Type' => "image/{$format}",
                 'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             ]);
         }

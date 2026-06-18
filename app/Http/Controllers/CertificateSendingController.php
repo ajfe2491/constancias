@@ -158,7 +158,7 @@ class CertificateSendingController extends Controller
         $path = $request->file('csv_file')->store('csv_uploads');
 
         // Parse CSV
-        $file = fopen(storage_path('app/' . $path), 'r');
+        $file = fopen(Storage::path($path), 'r');
         $header = fgetcsv($file);
 
         // Normalize headers: lowercase, trim, remove BOM if present
@@ -287,7 +287,7 @@ class CertificateSendingController extends Controller
             abort(404);
         }
 
-        $path = storage_path('app/' . $history->csv_file_path);
+        $path = Storage::path($history->csv_file_path);
         if (!file_exists($path)) {
             abort(404);
         }
@@ -345,6 +345,82 @@ class CertificateSendingController extends Controller
             'completed' => ($history->procesados_exitosos + $history->procesados_fallidos) >= $history->total_registros,
             'updated_at' => $history->updated_at?->toDateTimeString(),
         ]);
+    }
+
+    public function downloadAllPdf(ConstancyGeneralHistory $history)
+    {
+        if ($history->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
+            abort(403);
+        }
+
+        $certificates = $history->certificates()->with('documentConfiguration')->get();
+        if ($certificates->isEmpty()) {
+            return back()->with('error', 'No hay constancias generadas para este envío.');
+        }
+
+        $config = $history->documentConfiguration;
+        $unit = $config->page_unit ?: 'mm';
+        $orientation = $config->page_orientation ?: 'P';
+        $size = $config->page_size ?: 'Letter';
+
+        $pdf = new \FPDF($orientation, $unit, $size);
+
+        foreach ($certificates as $certificate) {
+            $data = $certificate->recipient_data;
+            $data['folio'] = $certificate->folio_number;
+            
+            if ($certificate->qr_path) {
+                $data['qr_path'] = Storage::disk('public')->path($certificate->qr_path);
+            }
+
+            $config->renderCertificateToPdf($pdf, $data);
+        }
+
+        $filename = 'constancias_' . $history->id . '.pdf';
+        return response($pdf->Output('', 'S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function downloadAllZip(ConstancyGeneralHistory $history)
+    {
+        if ($history->user_id !== Auth::id() && !Auth::user()->isSuperAdmin()) {
+            abort(403);
+        }
+
+        $certificates = $history->certificates()->with('documentConfiguration')->get();
+        if ($certificates->isEmpty()) {
+            return back()->with('error', 'No hay constancias generadas para este envío.');
+        }
+
+        $zip = new \ZipArchive();
+        $zipFileName = 'constancias_' . $history->id . '.zip';
+        $zipFilePath = storage_path('app/tmp/' . $zipFileName);
+
+        if (!is_dir(dirname($zipFilePath))) {
+            mkdir(dirname($zipFilePath), 0755, true);
+        }
+
+        if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
+            foreach ($certificates as $certificate) {
+                $data = $certificate->recipient_data;
+                $data['folio'] = $certificate->folio_number;
+                
+                if ($certificate->qr_path) {
+                    $data['qr_path'] = Storage::disk('public')->path($certificate->qr_path);
+                }
+
+                $pdf = $certificate->documentConfiguration->generatePDF($data);
+                $pdfContent = $pdf->Output('', 'S');
+                
+                $pdfName = Str::slug($certificate->recipient_name ?: 'constancia') . '_' . ($certificate->folio ?? $certificate->id) . '.pdf';
+                $zip->addFromString($pdfName, $pdfContent);
+            }
+            $zip->close();
+        }
+
+        return response()->download($zipFilePath)->deleteFileAfterSend(true);
     }
 
     private function extractPlaceholders(DocumentConfiguration $documentConfiguration): array
